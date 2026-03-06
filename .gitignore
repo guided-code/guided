@@ -1,0 +1,21 @@
+.envrc
+.env
+tmp/
+
+# Python
+.venv
+*.pyc
+__pycache__/
+dist/
+
+# Jupyter
+.ipynb_checkpoints
+
+# Guided
+.workspace/
+
+# osx
+.DS_Store
+
+# IDE
+*.swp

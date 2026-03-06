@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -euo pipefail
+
+cwd="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+cleanup() {
+  cd $cwd > /dev/null
+}
+
+ensure_docker() {
+  if [ ! command -v docker &> /dev/null ]; then
+    echo "[.]Error: docker is not installed. Please install docker first."
+    exit 1
+  fi
+}
+
+run_task() {
+  echo "[.]Running task..."
+  docker buildx build --platform linux/amd64,linux/arm64 --tag guided:latest --load .
+}
+
+# Prep
+trap cleanup SIGINT EXIT
+
+# Start
+ensure_docker
+run_task

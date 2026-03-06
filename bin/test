@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -euo pipefail
+
+cwd="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+cleanup() {
+  cd $cwd > /dev/null
+}
+
+ensure_uv() {
+  if [ ! command -v uv &> /dev/null ]; then
+    echo "[.]Error: uv is not installed. Please install uv first."
+    exit 1
+  fi
+}
+
+run_task() {
+  echo "[.]Running task..."
+  uv run pytest tests/
+}
+
+# Prep
+trap cleanup SIGINT EXIT
+
+# Start
+ensure_uv
+run_task

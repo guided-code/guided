@@ -1,0 +1,26 @@
+[project]
+name = "guided"
+version = "0.1.0"
+description = "Guided is a CLI tool designed to amplify the work of engineers by providing the scaffolding necessary to build great software with agentic AI resources."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.12.5",
+    "typer>=0.24.1",
+    "PyYAML>=6.0.1",
+    "rich>=14.3.3",
+]
+
+[dependency-groups]
+dev = [
+    "ipdb>=0.13.13",
+    "jupyter>=1.1.1",
+    "pytest>=9.0.2",
+]
+
+[project.scripts]
+guide = "guided.cli:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

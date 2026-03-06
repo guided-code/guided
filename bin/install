@@ -1,0 +1,63 @@
+#!/bin/bash
+
+set -euo pipefail
+
+install_location=$HOME/guided
+repo_location=git@github.com:henrytseng/guided.git
+
+cleanup() {
+  cd - > /dev/null
+}
+
+# Check for local installation
+check_installation() {
+  echo "[.]Checking if Guided is already installed..."
+  if command -v guide &> /dev/null; then
+    echo "Guided ($(guide --version)) is already installed at $(which guide)"
+    exit 1
+  fi
+}
+
+# Checkout git repository
+download() {
+  echo "[.]Downloading Guided..."
+  git clone $repo_location $install_location
+}
+
+# Add path
+modify_path() {
+  echo "[.]Modifying environment path..."
+  if [ -f $HOME/.zshrc ]; then
+    read -p "Found $HOME/.zshrc. Add Guided to PATH? y/[n]: " yn
+    case $yn in
+        [Yy]* ) 
+          echo 'export PATH=$PATH:$HOME/guided/bin' >> $HOME/.zshrc
+          echo "Modifying $HOME/.zshrc..."
+        ;;
+        * ) echo "Skipping...";;
+    esac
+  fi
+}
+
+# Show instructions
+show_instructions() {
+  echo ""
+  echo "[.]Instructions..."
+  echo "Guided has been installed to $install_location"
+  echo "Please update your environment by running the following command:"
+  echo ""
+  echo 'source $HOME/.zshrc'
+  echo ""
+  echo "You can now use guide commands."
+}
+
+# Prep
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cd $DIR/..
+trap cleanup SIGINT EXIT
+
+# Start
+check_installation
+download
+modify_path
+show_instructions
