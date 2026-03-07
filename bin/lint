@@ -10,13 +10,15 @@ cleanup() {
 
 ensure_uv() {
   if [ ! command -v uv &> /dev/null ]; then
-    echo "uv is not installed. Please install uv first."
+    echo "[.]Error: uv is not installed. Please install uv first."
     exit 1
   fi
 }
 
 run_task() {
-  uv run guide $@
+  echo "[.]Running task..."
+  uv run ruff check --fix src/
+  uv run ruff format src/
 }
 
 # Prep
@@ -24,4 +26,4 @@ trap cleanup SIGINT EXIT
 
 # Start
 ensure_uv
-run_task $@
+run_task

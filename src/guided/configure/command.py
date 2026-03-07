@@ -9,4 +9,4 @@ def setup_configuration():
 
     config = load_config()
     save_config(config)
-    rich.print(f"[green]Configuration loaded.[/green]")
+    rich.print("[green]Configuration loaded.[/green]")

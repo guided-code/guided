@@ -21,9 +21,7 @@ def get_guided_home() -> Path:
 
 
 def get_default_config() -> GuidedConfig:
-    return GuidedConfig(
-        version=guided.__version__
-    )
+    return GuidedConfig(version=guided.__version__)
 
 
 def ensure_guided_home() -> Path:

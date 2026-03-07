@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """Test script to verify the configuration module works correctly."""
 
-import os
 import tempfile
 from pathlib import Path
 
 from guided.config.manager import ConfigManager
-from guided.config.models import Config, ModelConfig
 
 
 def test_config_creation():
