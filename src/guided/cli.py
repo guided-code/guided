@@ -4,6 +4,7 @@ import rich
 import guided
 from guided.configure.command import setup_configuration
 from guided.models.command import app as models_app
+from guided.providers.command import app as providers_app
 
 app = typer.Typer(
     no_args_is_help=True,
@@ -17,6 +18,7 @@ def configure():
 
 
 app.add_typer(models_app, name="models")
+app.add_typer(providers_app, name="providers")
 
 
 @app.command()

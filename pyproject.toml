@@ -10,6 +10,7 @@ dependencies = [
     "PyYAML>=6.0.1",
     "rich>=14.3.3",
     "dunamai>=1.26.0",
+    "ollama>=0.6.1",
 ]
 
 [dependency-groups]

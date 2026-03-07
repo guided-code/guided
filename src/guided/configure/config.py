@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import List
 
 import yaml
 from pydantic import BaseModel, Field
@@ -11,8 +12,20 @@ DEFAULT_GUIDED_HOME = Path.home() / ".guided"
 CONFIG_FILE_NAME = "config.yaml"
 
 
+class Provider(BaseModel):
+    name: str
+    base_url: str
+
+
+class Model(BaseModel):
+    name: str
+    provider: str
+
+
 class GuidedConfig(BaseModel):
     version: str = Field(default="0.0.0")
+    providers: List[Provider] = Field(default_factory=list)
+    models: List[Model] = Field(default_factory=list)
 
 
 def get_guided_home() -> Path:
