@@ -1,10 +1,12 @@
-from typer import Typer
+import rich
 
-app = Typer(no_args_is_help=True)
+from guided.configure.config import ensure_guided_home, load_config, save_config
 
-@app.command()
-def setup():
-    print("Hello from guided!")
 
-if __name__ == "__main__":
-    app()
+def setup_configuration():
+    home = ensure_guided_home()
+    rich.print(f"[green]Guided home:[/green] {home}")
+
+    config = load_config()
+    save_config(config)
+    rich.print(f"[green]Configuration loaded.[/green]")

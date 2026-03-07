@@ -16,7 +16,7 @@ ensure_uv() {
 }
 
 run_task() {
-  uv run python main.py $@
+  uv run guide $@
 }
 
 # Prep

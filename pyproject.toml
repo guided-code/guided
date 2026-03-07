@@ -9,6 +9,7 @@ dependencies = [
     "typer>=0.24.1",
     "PyYAML>=6.0.1",
     "rich>=14.3.3",
+    "dunamai>=1.26.0",
 ]
 
 [dependency-groups]
@@ -16,6 +17,7 @@ dev = [
     "ipdb>=0.13.13",
     "jupyter>=1.1.1",
     "pytest>=9.0.2",
+    "ruff>=0.15.5",
 ]
 
 [project.scripts]

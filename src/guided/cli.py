@@ -1,16 +1,24 @@
 import typer
 import rich
 
-from guided.configure.command import app as configure_app
+import guided
+from guided.configure.command import setup_configuration
+from guided.models.command import app as models_app
 
-app = typer.Typer(help="Guided is a CLI tool designed to amplify the work of engineers by providing the scaffolding necessary to build great software with agentic AI resources.")
+app = typer.Typer(
+    no_args_is_help=True,
+    help="Guided is a CLI tool designed to amplify the work of engineers by providing the scaffolding necessary to build great software with agentic AI resources.",
+)
 
-app.add_typer(configure_app, name="configure")
+@app.command()
+def configure():
+    setup_configuration()
+
+app.add_typer(models_app, name="models")
 
 @app.command()
 def version():
-    import importlib.metadata
-    rich.print("Version: ", importlib.metadata.version("guided"))
+    rich.print("Version: ", guided.__version__)
 
 def run():
     """
