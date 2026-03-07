@@ -17,7 +17,7 @@ ensure_uv() {
 
 run_task() {
   echo "[.]Running task..."
-  uv run pytest tests/
+  uv run pytest $@
 }
 
 # Prep
@@ -25,4 +25,4 @@ trap cleanup SIGINT EXIT
 
 # Start
 ensure_uv
-run_task
+run_task $@
