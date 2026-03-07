@@ -1,31 +1,15 @@
 import os
 from pathlib import Path
-from typing import List
 
 import yaml
-from pydantic import BaseModel, Field
 
 import guided
+from guided.configure.schema import GuidedConfig, Provider
 
 
 DEFAULT_GUIDED_HOME = Path.home() / ".guided"
 CONFIG_FILE_NAME = "config.yaml"
-
-
-class Provider(BaseModel):
-    name: str
-    base_url: str
-
-
-class Model(BaseModel):
-    name: str
-    provider: str
-
-
-class GuidedConfig(BaseModel):
-    version: str = Field(default="0.0.0")
-    providers: List[Provider] = Field(default_factory=list)
-    models: List[Model] = Field(default_factory=list)
+OLLAMA_PROVIDER = Provider(name="ollama", base_url="http://localhost:11434")
 
 
 def get_guided_home() -> Path:
@@ -34,13 +18,20 @@ def get_guided_home() -> Path:
 
 
 def get_default_config() -> GuidedConfig:
-    return GuidedConfig(version=guided.__version__)
+    return GuidedConfig(
+        version=guided.__version__,
+        providers={"ollama": OLLAMA_PROVIDER},
+    )
 
 
 def ensure_guided_home() -> Path:
     home = get_guided_home()
     home.mkdir(parents=True, exist_ok=True)
     return home
+
+
+def config_exists() -> bool:
+    return (get_guided_home() / CONFIG_FILE_NAME).exists()
 
 
 def load_config() -> GuidedConfig:

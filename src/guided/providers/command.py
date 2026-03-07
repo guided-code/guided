@@ -14,7 +14,7 @@ def list():
         rich.print("[yellow]No providers configured.[/yellow]")
         return
     table = Table("Name", "Base URL")
-    for p in config.providers:
+    for p in config.providers.values():
         table.add_row(p.name, p.base_url)
     rich.print(table)
 
@@ -22,10 +22,10 @@ def list():
 @app.command()
 def add(name: str, base_url: str):
     config = load_config()
-    if any(p.name == name for p in config.providers):
+    if name in config.providers:
         rich.print(f"[red]Provider '{name}' already exists.[/red]")
         raise typer.Exit(1)
-    config.providers.append(Provider(name=name, base_url=base_url))
+    config.providers[name] = Provider(name=name, base_url=base_url)
     save_config(config)
     rich.print(f"[green]Provider '{name}' added.[/green]")
 
@@ -33,11 +33,10 @@ def add(name: str, base_url: str):
 @app.command()
 def remove(name: str):
     config = load_config()
-    before = len(config.providers)
-    config.providers = [p for p in config.providers if p.name != name]
-    if len(config.providers) == before:
+    if name not in config.providers:
         rich.print(f"[red]Provider '{name}' not found.[/red]")
         raise typer.Exit(1)
+    del config.providers[name]
     save_config(config)
     rich.print(f"[green]Provider '{name}' removed.[/green]")
 
