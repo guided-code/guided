@@ -6,7 +6,6 @@ import yaml
 import guided
 from guided.configure.schema import Configuration, Provider
 
-
 DEFAULT_GUIDED_HOME = Path.home() / ".guided"
 CONFIG_FILE_NAME = "config.yaml"
 OLLAMA_PROVIDER = Provider(name="ollama", base_url="http://localhost:11434")

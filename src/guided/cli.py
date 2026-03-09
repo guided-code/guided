@@ -1,5 +1,5 @@
-import typer
 import rich
+import typer
 from pydantic import ValidationError
 
 import guided
@@ -25,8 +25,8 @@ def validate_config(ctx: typer.Context):
 
 
 @app.command()
-def configure(ctx: typer.Context):
-    setup_configuration(ctx.obj)
+def configure(ctx: typer.Context, overwrite_with_default: bool = False):
+    setup_configuration(ctx.obj, overwrite_with_default=overwrite_with_default)
 
 
 app.add_typer(models_app, name="models")

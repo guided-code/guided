@@ -1,7 +1,7 @@
-import typer
-import rich
-from rich.table import Table
 import ollama
+import rich
+import typer
+from rich.table import Table
 
 from guided.configure.config import save_config
 from guided.configure.schema import Model
@@ -15,9 +15,13 @@ def list(ctx: typer.Context):
 
     table = Table("Name", "Provider", "Default", "Source")
 
-    for m in config.models.values():
+    # Sort models from configuration
+    sorted_config_models = sorted(config.models.values(), key=lambda m: m.name)
+    for m in sorted_config_models:
         table.add_row(m.name, m.provider, "yes" if m.is_default else "", "config")
 
+    # Add Ollama discovered models
+    ollama_models = []
     for provider in config.providers.values():
         if provider.name == "ollama":
             try:
@@ -26,11 +30,16 @@ def list(ctx: typer.Context):
                 configured_names = set(config.models.keys())
                 for model in response.models:
                     if model.model not in configured_names:
-                        table.add_row(model.model, provider.name, "", "ollama")
+                        ollama_models.append(model)
             except Exception as e:
                 rich.print(
                     f"[yellow]Warning: could not reach ollama at {provider.base_url}: {e}[/yellow]"
                 )
+
+    # Sort Ollama models alphabetically
+    sorted_ollama_models = sorted(ollama_models, key=lambda m: m.model)
+    for model in sorted_ollama_models:
+        table.add_row(model.model, "ollama", "", "ollama")
 
     if table.row_count == 0:
         rich.print("[yellow]No models configured.[/yellow]")

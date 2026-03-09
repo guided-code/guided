@@ -9,6 +9,7 @@ Guided is a CLI tool designed to amplify the work of engineers by providing the 
 All scripts require `uv` to be installed.
 
 ```bash
+bin/guide     # Run CLI from source code
 bin/test      # Run all tests (uv run pytest tests/)
 bin/lint      # Lint and format (ruff check --fix + ruff format on src/)
 ```
@@ -22,6 +23,8 @@ Run a single test by name:
 ```bash
 bin/test tests/test_models_command.py::test_list_empty_no_ollama
 ```
+
+The `guide configure` command accepts an `--use_default` flag to reset the configuration to the default settings.
 
 ## Architecture
 
@@ -42,6 +45,8 @@ bin/test tests/test_models_command.py::test_list_empty_no_ollama
 ### Config file
 
 Config is stored as YAML at `~/.guided/config.yaml`. The schema is `Config`.  The default model is selected as the `default` attribute in the Models dictionary.  
+
+The default configuration includes an Ollama provider pointing to `http://localhost:11434`.
 
 ### Testing patterns
 
