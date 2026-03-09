@@ -6,7 +6,7 @@ Guided is a CLI tool designed to amplify the work of engineers by providing the 
 
 ## Commands
 
-All scripts require `uv` to be installed.
+Scripts can be executed from the project base folder.  All scripts require `uv` to be installed.
 
 ```bash
 bin/guide     # Run CLI from source code

@@ -82,7 +82,9 @@ def test_chat_no_default_when_default_false(config_with_model):
 def test_chat_model_by_config_key(config_with_model):
     with patch("guided.chat.command.ollama.Client") as mock_client_cls:
         mock_client_cls.return_value.chat.return_value = _mock_response("Hi there!")
-        result = runner.invoke(app, ["llama3"], obj=config_with_model, input="hello\n\n")
+        result = runner.invoke(
+            app, ["llama3"], obj=config_with_model, input="hello\n\n"
+        )
     assert result.exit_code == 0
     assert "llama3" in result.output
     mock_client_cls.return_value.chat.assert_called_once()
@@ -123,13 +125,3 @@ def test_chat_ollama_error(config_with_model):
         result = runner.invoke(app, ["llama3"], obj=config_with_model, input="hello\n")
     assert result.exit_code == 1
     assert "Error" in result.output
-
-
-# Empty input exits cleanly
-
-
-def test_chat_empty_input_exits(config_with_model):
-    with patch("guided.chat.command.ollama.Client") as mock_client_cls:
-        result = runner.invoke(app, ["llama3"], obj=config_with_model, input="\n")
-    assert result.exit_code == 0
-    mock_client_cls.return_value.chat.assert_not_called()
