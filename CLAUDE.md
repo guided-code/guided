@@ -31,7 +31,7 @@ bin/test tests/test_models_command.py::test_list_empty_no_ollama
 
 - `cli.py` — Root Typer app; registers subcommand groups (`models`, `providers`) and top-level commands (`configure`, `version`)
 - `configure/` — Configuration subsystem
-  - `schema.py` — Pydantic models: `GuidedConfig`, `Provider`, `Model`
+  - `schema.py` — Pydantic models for configuration validation
   - `config.py` — Load/save YAML config at `~/.guided/config.yaml` (overridable via `GUIDED_HOME` env var); default config seeds an ollama provider
   - `command.py` — `guide configure` command
 - `providers/` — `guide providers` subcommands (list/add/remove providers in config)
@@ -41,7 +41,7 @@ bin/test tests/test_models_command.py::test_list_empty_no_ollama
 
 ### Config file
 
-Config is stored as YAML at `~/.guided/config.yaml`. The schema is `GuidedConfig`.  
+Config is stored as YAML at `~/.guided/config.yaml`. The schema is `Config`.  The default model is selected as the `default` attribute in the Models dictionary.  
 
 ### Testing patterns
 

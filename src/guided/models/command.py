@@ -13,10 +13,10 @@ app = typer.Typer(no_args_is_help=True)
 def list():
     config = load_config()
 
-    table = Table("Name", "Provider", "Source")
+    table = Table("Name", "Provider", "Default", "Source")
 
     for m in config.models.values():
-        table.add_row(m.name, m.provider, "config")
+        table.add_row(m.name, m.provider, "yes" if m.is_default else "", "config")
 
     for provider in config.providers.values():
         if provider.name == "ollama":
@@ -26,7 +26,7 @@ def list():
                 configured_names = set(config.models.keys())
                 for model in response.models:
                     if model.model not in configured_names:
-                        table.add_row(model.model, provider.name, "ollama")
+                        table.add_row(model.model, provider.name, "", "ollama")
             except Exception as e:
                 rich.print(
                     f"[yellow]Warning: could not reach ollama at {provider.base_url}: {e}[/yellow]"
@@ -40,12 +40,19 @@ def list():
 
 
 @app.command()
-def add(name: str, provider: str):
+def add(
+    name: str,
+    provider: str,
+    default: bool = typer.Option(False, "--default", help="Set as the default model"),
+):
     config = load_config()
     if name in config.models:
         rich.print(f"[red]Model '{name}' already exists.[/red]")
         raise typer.Exit(1)
-    config.models[name] = Model(name=name, provider=provider)
+    if default:
+        for m in config.models.values():
+            m.is_default = False
+    config.models[name] = Model(name=name, provider=provider, is_default=default)
     save_config(config)
     rich.print(f"[green]Model '{name}' added.[/green]")
 
@@ -59,6 +66,19 @@ def remove(name: str):
     del config.models[name]
     save_config(config)
     rich.print(f"[green]Model '{name}' removed.[/green]")
+
+
+@app.command(name="set-default")
+def set_default(name: str):
+    """Mark a model as the default."""
+    config = load_config()
+    if name not in config.models:
+        rich.print(f"[red]Model '{name}' not found.[/red]")
+        raise typer.Exit(1)
+    for key, m in config.models.items():
+        m.is_default = key == name
+    save_config(config)
+    rich.print(f"[green]Model '{name}' set as default.[/green]")
 
 
 if __name__ == "__main__":

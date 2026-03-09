@@ -11,6 +11,7 @@ class Provider(BaseModel):
 class Model(BaseModel):
     name: str
     provider: str
+    is_default: bool = False
 
 
 class GuidedConfig(BaseModel):
