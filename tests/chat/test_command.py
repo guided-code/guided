@@ -5,15 +5,15 @@ import typer
 from typer.testing import CliRunner
 
 from guided.chat.command import chat
-from guided.configure.schema import GuidedConfig, Model, Provider
+from guided.configure.schema import Configuration, Model, Provider
 
 runner = CliRunner()
 app = typer.Typer()
 app.command()(chat)
 
 
-def make_config(**kwargs) -> GuidedConfig:
-    return GuidedConfig(**kwargs)
+def make_config(**kwargs) -> Configuration:
+    return Configuration(**kwargs)
 
 
 OLLAMA_PROVIDER = Provider(name="ollama", base_url="http://localhost:11434")
@@ -50,8 +50,7 @@ def _mock_response(content: str) -> MagicMock:
 
 
 def test_chat_no_model_no_default(empty_config):
-    with patch("guided.chat.command.load_config", return_value=empty_config):
-        result = runner.invoke(app, [])
+    result = runner.invoke(app, [], obj=empty_config)
     assert result.exit_code == 1
     assert "No model specified" in result.output
 
@@ -60,12 +59,9 @@ def test_chat_no_model_no_default(empty_config):
 
 
 def test_chat_uses_default_model(config_with_default):
-    with (
-        patch("guided.chat.command.load_config", return_value=config_with_default),
-        patch("guided.chat.command.ollama.Client") as mock_client_cls,
-    ):
+    with patch("guided.chat.command.ollama.Client") as mock_client_cls:
         mock_client_cls.return_value.chat.return_value = _mock_response("Hello!")
-        result = runner.invoke(app, [], input="hi\n\n")
+        result = runner.invoke(app, [], obj=config_with_default, input="hi\n\n")
     assert result.exit_code == 0
     assert "llama3" in result.output
     mock_client_cls.return_value.chat.assert_called_once()
@@ -75,8 +71,7 @@ def test_chat_uses_default_model(config_with_default):
 
 
 def test_chat_no_default_when_default_false(config_with_model):
-    with patch("guided.chat.command.load_config", return_value=config_with_model):
-        result = runner.invoke(app, [])
+    result = runner.invoke(app, [], obj=config_with_model)
     assert result.exit_code == 1
     assert "No model specified" in result.output
 
@@ -85,12 +80,9 @@ def test_chat_no_default_when_default_false(config_with_model):
 
 
 def test_chat_model_by_config_key(config_with_model):
-    with (
-        patch("guided.chat.command.load_config", return_value=config_with_model),
-        patch("guided.chat.command.ollama.Client") as mock_client_cls,
-    ):
+    with patch("guided.chat.command.ollama.Client") as mock_client_cls:
         mock_client_cls.return_value.chat.return_value = _mock_response("Hi there!")
-        result = runner.invoke(app, ["llama3"], input="hello\n\n")
+        result = runner.invoke(app, ["llama3"], obj=config_with_model, input="hello\n\n")
     assert result.exit_code == 0
     assert "llama3" in result.output
     mock_client_cls.return_value.chat.assert_called_once()
@@ -101,12 +93,9 @@ def test_chat_model_by_config_key(config_with_model):
 
 def test_chat_bare_model_name():
     config = make_config(providers={"ollama": OLLAMA_PROVIDER}, models={})
-    with (
-        patch("guided.chat.command.load_config", return_value=config),
-        patch("guided.chat.command.ollama.Client") as mock_client_cls,
-    ):
+    with patch("guided.chat.command.ollama.Client") as mock_client_cls:
         mock_client_cls.return_value.chat.return_value = _mock_response("Sure!")
-        result = runner.invoke(app, ["mistral"], input="hey\n\n")
+        result = runner.invoke(app, ["mistral"], obj=config, input="hey\n\n")
     assert result.exit_code == 0
     call_args = mock_client_cls.return_value.chat.call_args
     assert call_args.kwargs["model"] == "mistral"
@@ -120,8 +109,7 @@ def test_chat_provider_not_found():
         providers={},
         models={"mymodel": Model(name="mymodel", provider="missing")},
     )
-    with patch("guided.chat.command.load_config", return_value=config):
-        result = runner.invoke(app, ["mymodel"])
+    result = runner.invoke(app, ["mymodel"], obj=config)
     assert result.exit_code == 1
     assert "not found" in result.output
 
@@ -130,12 +118,9 @@ def test_chat_provider_not_found():
 
 
 def test_chat_ollama_error(config_with_model):
-    with (
-        patch("guided.chat.command.load_config", return_value=config_with_model),
-        patch("guided.chat.command.ollama.Client") as mock_client_cls,
-    ):
+    with patch("guided.chat.command.ollama.Client") as mock_client_cls:
         mock_client_cls.return_value.chat.side_effect = Exception("connection refused")
-        result = runner.invoke(app, ["llama3"], input="hello\n")
+        result = runner.invoke(app, ["llama3"], obj=config_with_model, input="hello\n")
     assert result.exit_code == 1
     assert "Error" in result.output
 
@@ -144,10 +129,7 @@ def test_chat_ollama_error(config_with_model):
 
 
 def test_chat_empty_input_exits(config_with_model):
-    with (
-        patch("guided.chat.command.load_config", return_value=config_with_model),
-        patch("guided.chat.command.ollama.Client") as mock_client_cls,
-    ):
-        result = runner.invoke(app, ["llama3"], input="\n")
+    with patch("guided.chat.command.ollama.Client") as mock_client_cls:
+        result = runner.invoke(app, ["llama3"], obj=config_with_model, input="\n")
     assert result.exit_code == 0
     mock_client_cls.return_value.chat.assert_not_called()

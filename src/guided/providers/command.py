@@ -2,14 +2,15 @@ import typer
 import rich
 from rich.table import Table
 
-from guided.configure.config import Provider, load_config, save_config
+from guided.configure.config import save_config
+from guided.configure.schema import Provider
 
 app = typer.Typer(no_args_is_help=True)
 
 
 @app.command()
-def list():
-    config = load_config()
+def list(ctx: typer.Context):
+    config = ctx.obj
     if not config.providers:
         rich.print("[yellow]No providers configured.[/yellow]")
         return
@@ -20,8 +21,8 @@ def list():
 
 
 @app.command()
-def add(name: str, base_url: str):
-    config = load_config()
+def add(ctx: typer.Context, name: str, base_url: str):
+    config = ctx.obj
     if name in config.providers:
         rich.print(f"[red]Provider '{name}' already exists.[/red]")
         raise typer.Exit(1)
@@ -31,8 +32,8 @@ def add(name: str, base_url: str):
 
 
 @app.command()
-def remove(name: str):
-    config = load_config()
+def remove(ctx: typer.Context, name: str):
+    config = ctx.obj
     if name not in config.providers:
         rich.print(f"[red]Provider '{name}' not found.[/red]")
         raise typer.Exit(1)

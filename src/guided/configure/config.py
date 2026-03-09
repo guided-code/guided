@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 
 import guided
-from guided.configure.schema import GuidedConfig, Provider
+from guided.configure.schema import Configuration, Provider
 
 
 DEFAULT_GUIDED_HOME = Path.home() / ".guided"
@@ -17,8 +17,8 @@ def get_guided_home() -> Path:
     return Path(env_home)
 
 
-def get_default_config() -> GuidedConfig:
-    return GuidedConfig(
+def get_default_config() -> Configuration:
+    return Configuration(
         version=guided.__version__,
         providers={"ollama": OLLAMA_PROVIDER},
     )
@@ -34,7 +34,7 @@ def config_exists() -> bool:
     return (get_guided_home() / CONFIG_FILE_NAME).exists()
 
 
-def load_config() -> GuidedConfig:
+def load_config() -> Configuration:
     home = ensure_guided_home()
     config_path = home / CONFIG_FILE_NAME
 
@@ -45,10 +45,10 @@ def load_config() -> GuidedConfig:
     with config_path.open() as f:
         data = yaml.safe_load(f) or {}
 
-    return GuidedConfig(**data)
+    return Configuration(**data)
 
 
-def save_config(config: GuidedConfig) -> None:
+def save_config(config: Configuration) -> None:
     home = ensure_guided_home()
     config_path = home / CONFIG_FILE_NAME
 

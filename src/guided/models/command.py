@@ -3,15 +3,15 @@ import rich
 from rich.table import Table
 import ollama
 
-from guided.configure.config import load_config, save_config
+from guided.configure.config import save_config
 from guided.configure.schema import Model
 
 app = typer.Typer(no_args_is_help=True)
 
 
 @app.command()
-def list():
-    config = load_config()
+def list(ctx: typer.Context):
+    config = ctx.obj
 
     table = Table("Name", "Provider", "Default", "Source")
 
@@ -41,11 +41,12 @@ def list():
 
 @app.command()
 def add(
+    ctx: typer.Context,
     name: str,
     provider: str,
     default: bool = typer.Option(False, "--default", help="Set as the default model"),
 ):
-    config = load_config()
+    config = ctx.obj
     if name in config.models:
         rich.print(f"[red]Model '{name}' already exists.[/red]")
         raise typer.Exit(1)
@@ -58,8 +59,8 @@ def add(
 
 
 @app.command()
-def remove(name: str):
-    config = load_config()
+def remove(ctx: typer.Context, name: str):
+    config = ctx.obj
     if name not in config.models:
         rich.print(f"[red]Model '{name}' not found.[/red]")
         raise typer.Exit(1)
@@ -69,9 +70,9 @@ def remove(name: str):
 
 
 @app.command(name="set-default")
-def set_default(name: str):
+def set_default(ctx: typer.Context, name: str):
     """Mark a model as the default."""
-    config = load_config()
+    config = ctx.obj
     if name not in config.models:
         rich.print(f"[red]Model '{name}' not found.[/red]")
         raise typer.Exit(1)

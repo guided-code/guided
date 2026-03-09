@@ -1,9 +1,11 @@
 import typer
 import rich
+from pydantic import ValidationError
 
 import guided
 from guided.chat.command import chat
 from guided.configure.command import setup_configuration
+from guided.configure.config import load_config
 from guided.models.command import app as models_app
 from guided.providers.command import app as providers_app
 
@@ -13,9 +15,18 @@ app = typer.Typer(
 )
 
 
+@app.callback()
+def validate_config(ctx: typer.Context):
+    try:
+        ctx.obj = load_config()
+    except ValidationError as e:
+        rich.print(f"[red]Configuration error:[/red] {e}")
+        raise typer.Exit(code=1)
+
+
 @app.command()
-def configure():
-    setup_configuration()
+def configure(ctx: typer.Context):
+    setup_configuration(ctx.obj)
 
 
 app.add_typer(models_app, name="models")

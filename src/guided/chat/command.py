@@ -4,12 +4,10 @@ import ollama
 import rich
 import typer
 
-from guided.configure.config import load_config
 
-
-def chat(model: Optional[str] = typer.Argument(default=None, help="Model name to chat with")):
+def chat(ctx: typer.Context, model: Optional[str] = typer.Argument(default=None, help="Model name to chat with")):
     """Chat interactively with a model."""
-    config = load_config()
+    config = ctx.obj
 
     # Resolve model name
     if model is None:
