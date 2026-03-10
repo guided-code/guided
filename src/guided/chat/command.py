@@ -4,6 +4,8 @@ import ollama
 import rich
 import typer
 
+from guided.chat.actions import ActionContext, default_registry
+
 
 def chat(
     ctx: typer.Context,
@@ -44,6 +46,7 @@ def chat(
 
     client = ollama.Client(host=provider.base_url)
     messages = []
+    registry = default_registry()
 
     rich.print(
         f"[bold]Chatting with[/bold] [cyan]{model_name}[/cyan] via [cyan]{provider.name}[/cyan]"
@@ -51,7 +54,7 @@ def chat(
     rich.print(
         "Type your message and press Enter. Leave blank or press Ctrl+C to exit."
     )
-    rich.print("Use /exit to stop chatting.\n")
+    rich.print("Type [cyan]/help[/cyan] for available actions.\n")
 
     while True:
         try:
@@ -64,15 +67,12 @@ def chat(
             rich.print("[dim]Goodbye.[/dim]")
             break
 
-        # Check for slash commands
         if user_input.strip().startswith("/"):
-            command = user_input.strip()
-            if command == "/exit":
-                rich.print("[dim]Goodbye.[/dim]")
+            ctx = ActionContext(config=config, messages=messages, registry=registry)
+            should_exit = registry.dispatch(user_input.strip(), ctx)
+            if should_exit:
                 break
-            else:
-                rich.print(f"[red]Unknown command: {command}[/red]")
-                continue
+            continue
 
         messages.append({"role": "user", "content": user_input})
 
