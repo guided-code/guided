@@ -3,6 +3,7 @@ from typing import Optional
 import ollama
 import rich
 import typer
+from rich.console import Console
 
 from guided.chat.actions import ActionContext, default_registry
 
@@ -56,9 +57,11 @@ def chat(
     )
     rich.print("Type [cyan]/help[/cyan] for available actions.\n")
 
+    console = Console()
     while True:
         try:
-            user_input = typer.prompt("You", prompt_suffix=": ")
+            console.out("\nYou:", style="dim", end="")
+            user_input = typer.prompt("", prompt_suffix=" ")
         except (typer.Abort, KeyboardInterrupt, EOFError):
             rich.print("\n[dim]Goodbye.[/dim]")
             break
@@ -68,8 +71,10 @@ def chat(
             break
 
         if user_input.strip().startswith("/"):
-            ctx = ActionContext(config=config, messages=messages, registry=registry)
-            should_exit = registry.dispatch(user_input.strip(), ctx)
+            action_context = ActionContext(
+                config=config, messages=messages, registry=registry
+            )
+            should_exit = registry.dispatch(user_input.strip(), action_context)
             if should_exit:
                 break
             continue
@@ -77,10 +82,27 @@ def chat(
         messages.append({"role": "user", "content": user_input})
 
         try:
-            response = client.chat(model=model_name, messages=messages)
-            assistant_message = response.message.content
-            messages.append({"role": "assistant", "content": assistant_message})
-            rich.print(f"\n[bold cyan]Assistant[/bold cyan]: {assistant_message}\n")
+            with console.status("[bold magenta]Thinking...", spinner="dots"):
+                stream = client.chat(
+                    model=model_name,
+                    messages=messages,
+                    stream=True,
+                )
+                # Eagerly fetch the first chunk so the spinner is shown while
+                # waiting for the model to respond, then stop it before printing.
+                chunks = list(stream)
+
+            console.out("\nAssistant: ", style="dim", end="")
+            full_response = []
+            for chunk in chunks:
+                content = chunk.message.content
+                if content:
+                    console.out(content, end="")
+                    full_response.append(content)
+
+            console.out("\n")
+            messages.append({"role": "assistant", "content": "".join(full_response)})
+
         except Exception as e:
             rich.print(f"[red]Error: {e}[/red]")
             raise typer.Exit(1)
