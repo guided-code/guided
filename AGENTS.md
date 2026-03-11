@@ -40,7 +40,6 @@ The `guide configure` command accepts an `--use_default` flag to reset the confi
 - `providers/` — `guide providers` subcommands (list/add/remove providers in config)
 - `models/` — `guide models` subcommands (list/add/remove models; also discovers models live from ollama)
 - `agents/` — `guide agents` subcommands (stub, not yet implemented)
-- `tools/` — Tool definitions (stub)
 
 ### Config file
 

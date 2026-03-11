@@ -23,6 +23,11 @@ class Action(ABC):
         ...
 
     @property
+    def aliases(self) -> list[str]:
+        """Additional names that can be used to invoke this action."""
+        return []
+
+    @property
     def description(self) -> str:
         return ""
 
@@ -41,6 +46,10 @@ class ExitAction(Action):
     def description(self) -> str:
         return "Exit the chat session"
 
+    @property
+    def aliases(self) -> list[str]:
+        return ["quit", "bye", "q"]
+
     def execute(self, ctx: ActionContext, args: str = "") -> bool:
         rich.print("[dim]Goodbye.[/dim]")
         return True
@@ -57,8 +66,9 @@ class HelpAction(Action):
 
     def execute(self, ctx: ActionContext, args: str = "") -> bool:
         rich.print("\n[bold]Available actions:[/bold]")
-        for action in ctx.registry.actions.values():
-            rich.print(f"  [cyan]/{action.name}[/cyan] — {action.description}")
+        for name in ctx.registry.get_all_action_names():
+            action = ctx.registry.actions[name]
+            rich.print(f"  [cyan]/{name}[/cyan] — {action.description}")
         rich.print()
         return False
 
@@ -66,9 +76,19 @@ class HelpAction(Action):
 class ActionRegistry:
     def __init__(self) -> None:
         self.actions: dict[str, Action] = {}
+        self.main_names: set[str] = set()
 
     def register(self, action: Action) -> None:
+        if action.name in self.actions:
+            raise ValueError(f"Action '{action.name}' is already registered")
         self.actions[action.name] = action
+        self.main_names.add(action.name)
+        for alias in action.aliases:
+            if alias in self.actions:
+                raise ValueError(
+                    f"Alias '{alias}' for action '{action.name}' conflicts with existing action"
+                )
+            self.actions[alias] = action
 
     def dispatch(self, user_input: str, ctx: ActionContext) -> bool | None:
         """Dispatch a slash action. Returns True to exit, False to continue,
@@ -86,6 +106,10 @@ class ActionRegistry:
             return False
 
         return action.execute(ctx, args)
+
+    def get_all_action_names(self) -> list[str]:
+        """Return a list of all action names (excluding aliases)."""
+        return sorted(self.main_names)
 
 
 def default_registry() -> ActionRegistry:
