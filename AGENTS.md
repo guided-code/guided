@@ -2,6 +2,8 @@
 
 Guided is a CLI tool designed to amplify the work of engineers by providing the scaffolding necessary to build great software with agentic AI resources.
 
+Changes to a project are managed in a containerized environment associated with a Git worktree.  Project level details are managed in a workspace.  
+
 ## Commands
 
 Scripts can be executed from the project base folder.  All scripts require `uv` to be installed.

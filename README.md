@@ -7,6 +7,8 @@ Guided is a CLI tool designed to amplify the work of engineers by providing the 
 
 Guided leverages containerized environments and provides tools to build workflows in parallel, geared towards separating concerns for greater maintainability and scalability.  
 
+Changes to a project are managed in a containerized environment associated with a Git worktree.  Project level details are managed in a workspace.  
+
 Features:
 
 - CLI tool to manage the development lifecycle of a project
