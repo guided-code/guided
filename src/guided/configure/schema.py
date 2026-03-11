@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Any, Dict
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -14,10 +14,18 @@ class Model(BaseModel):
     is_default: bool = False
 
 
+class Skill(BaseModel):
+    name: str
+    description: str
+    type: str
+    parameters: Dict[str, Any] = Field(default_factory=dict)
+
+
 class Configuration(BaseModel):
     version: str = Field(default="0.0.0")
     providers: Dict[str, Provider] = Field(default_factory=dict)
     models: Dict[str, Model] = Field(default_factory=dict)
+    skills: Dict[str, Skill] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_single_default(self) -> "Configuration":

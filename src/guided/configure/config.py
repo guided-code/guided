@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 
 import guided
-from guided.configure.schema import Configuration, Provider
+from guided.configure.schema import Configuration, Provider, Skill
 
 DEFAULT_GUIDED_HOME = Path.home() / ".guided"
 CONFIG_FILE_NAME = "config.yaml"
@@ -16,10 +16,19 @@ def get_guided_home() -> Path:
     return Path(env_home)
 
 
+READ_FILE_SKILL = Skill(
+    name="read_file",
+    description="Read the contents of a local file",
+    type="file_read",
+    parameters={"allowed_paths": ["."]},
+)
+
+
 def get_default_config() -> Configuration:
     return Configuration(
         version=guided.__version__,
         providers={"ollama": OLLAMA_PROVIDER},
+        skills={"read_file": READ_FILE_SKILL},
     )
 
 
