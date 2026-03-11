@@ -29,7 +29,9 @@ def add(
     ctx: typer.Context,
     name: str,
     type: str,
-    description: str = typer.Option(..., "--description", "-d", help="Skill description"),
+    description: str = typer.Option(
+        ..., "--description", "-d", help="Skill description"
+    ),
 ):
     """Add a new skill."""
     config = ctx.obj
