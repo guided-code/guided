@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional
 
 import ollama
@@ -48,6 +49,12 @@ def chat(
     client = ollama.Client(host=provider.base_url)
     messages = []
     registry = default_registry()
+
+    # Load and prefix AGENTS.md content
+    agents_content = load_agents_md()
+    if agents_content:
+        rich.print("[dim]Loaded agent context from AGENTS.md[/dim]")
+        messages.append({"role": "system", "content": agents_content})
 
     rich.print(
         f"[bold]Chatting with[/bold] [cyan]{model_name}[/cyan] via [cyan]{provider.name}[/cyan]"
@@ -106,3 +113,32 @@ def chat(
         except Exception as e:
             rich.print(f"[red]Error: {e}[/red]")
             raise typer.Exit(1)
+
+
+def load_agents_md() -> Optional[str]:
+    """Load AGENTS.md from current directory or workspace, if it exists.
+
+    Checks in order:
+    1. Current directory's AGENTS.md
+    2. .workspace/AGENTS.md (in workspace root)
+    3. .workspace/context/AGENTS.md (in workspace context folder)
+    """
+    # Check current directory first
+    current_agents = Path("AGENTS.md")
+    if current_agents.exists():
+        return current_agents.read_text().strip()
+
+    # Check workspace locations
+    workspace = Path(".workspace")
+    if workspace.is_dir():
+        # Check workspace root
+        workspace_agents = workspace / "AGENTS.md"
+        if workspace_agents.exists():
+            return workspace_agents.read_text().strip()
+
+        # Check workspace context folder
+        context_agents = workspace / "context" / "AGENTS.md"
+        if context_agents.exists():
+            return context_agents.read_text().strip()
+
+    return None

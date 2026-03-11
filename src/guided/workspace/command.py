@@ -34,7 +34,8 @@ def save_workspace_config(workspace: Path, config: WorkspaceConfig) -> None:
 @app.command()
 def init(
     path: Optional[Path] = typer.Argument(
-        default=None, help="Directory to initialize as a workspace (default: current directory)"
+        default=None,
+        help="Directory to initialize as a workspace (default: current directory)",
     ),
     name: Optional[str] = typer.Option(
         None, "--name", "-n", help="Workspace name (default: directory name)"
@@ -71,7 +72,8 @@ def init(
 @app.command()
 def info(
     path: Optional[Path] = typer.Argument(
-        default=None, help="Directory containing the workspace (default: current directory)"
+        default=None,
+        help="Directory containing the workspace (default: current directory)",
     ),
 ):
     """Show information about a workspace."""
