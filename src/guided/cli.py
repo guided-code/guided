@@ -8,6 +8,7 @@ from guided.configure.command import setup_configuration
 from guided.configure.config import load_config
 from guided.models.command import app as models_app
 from guided.providers.command import app as providers_app
+from guided.skills.command import app as skills_app
 from guided.workspace.command import app as workspace_app
 
 app = typer.Typer(
@@ -32,6 +33,7 @@ def configure(ctx: typer.Context, overwrite_with_default: bool = False):
 
 app.add_typer(models_app, name="models")
 app.add_typer(providers_app, name="providers")
+app.add_typer(skills_app, name="skills")
 app.add_typer(workspace_app, name="workspace")
 app.command()(chat)
 
