@@ -30,20 +30,31 @@ The `guide configure` command accepts an `--use_default` flag to reset the confi
 
 ### Module layout (`src/guided/`)
 
-- `cli.py` — Root Typer app; registers subcommand groups (`models`, `providers`) and top-level commands (`configure`, `version`)
+- `cli.py` — Root Typer app; registers subcommand groups (`models`, `providers`, `skills`, `workspace`) and top-level commands (`configure`, `version`, `chat`)
 - `configure/` — Configuration subsystem
-  - `schema.py` — Pydantic models for configuration validation
+  - `schema.py` — Pydantic models for configuration validation (`Provider`, `Model`, `Skill`, `Configuration`); enforces single default model
   - `config.py` — Load/save YAML config at `~/.guided/config.yaml` (overridable via `GUIDED_HOME` env var); default config seeds an ollama provider
   - `command.py` — `guide configure` command
 - `providers/` — `guide providers` subcommands (list/add/remove providers in config)
-- `models/` — `guide models` subcommands (list/add/remove models; also discovers models live from ollama)
-- `agents/` — `guide agents` subcommands (stub, not yet implemented)
+- `models/` — `guide models` subcommands (list/add/remove/set-default models; also discovers models live from ollama)
+- `skills/` — `guide skills` subcommands (list/add/remove skills in config)
+- `workspace/` — `guide workspace` subcommands for managing local project workspaces
+  - `command.py` — `init` (creates `.workspace/` with `decisions/`, `transcripts/`, `context/` subdirs) and `info` commands
+  - `schema.py` — `WorkspaceConfig` Pydantic model (name, version, created_at)
+- `chat/` — `guide chat [model]` interactive chat command
+  - `command.py` — Streams responses from ollama; loads AGENTS.md context from `./AGENTS.md`, `.workspace/AGENTS.md`, or `.workspace/context/AGENTS.md`
+  - `actions.py` — In-chat slash command system: `Action` ABC, `ActionContext`, `ActionRegistry`, built-in `ExitAction` (`/exit`, `/quit`, `/bye`, `/q`) and `HelpAction` (`/help`)
+- `agents/` — stub (not registered in CLI)
 
 ### Config file
 
-Config is stored as YAML at `~/.guided/config.yaml`. The schema is `Config`.  The default model is selected as the `default` attribute in the Models dictionary.  
+Config is stored as YAML at `~/.guided/config.yaml`. The schema is `Configuration`. The default model is selected via the `is_default` flag on `Model`.
 
 The default configuration includes an Ollama provider pointing to `http://localhost:11434`.
+
+### In-chat actions
+
+In-chat slash commands (e.g. `/exit`, `/help`) are called **actions**. The user-facing term is "actions". The code class name is `Action` (not `SlashCommand`). These will eventually delegate to CLI Typer commands.
 
 ### Testing patterns
 

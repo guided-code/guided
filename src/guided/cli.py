@@ -27,7 +27,13 @@ def validate_config(ctx: typer.Context):
 
 
 @app.command()
-def configure(ctx: typer.Context, overwrite_with_default: bool = False):
+def configure(
+    ctx: typer.Context,
+    overwrite_with_default: bool = typer.Option(
+        False, "--use_default", help="Reset configuration to default settings"
+    ),
+):
+    """Initialize or update the Guided configuration file."""
     setup_configuration(ctx.obj, overwrite_with_default=overwrite_with_default)
 
 
@@ -40,6 +46,7 @@ app.command()(chat)
 
 @app.command()
 def version():
+    """Show the current version of Guided."""
     rich.print("Version: ", guided.__version__)
 
 

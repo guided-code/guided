@@ -6,11 +6,12 @@ from rich.table import Table
 from guided.configure.config import save_config
 from guided.configure.schema import Model
 
-app = typer.Typer(no_args_is_help=True)
+app = typer.Typer(no_args_is_help=True, help="Manage models.")
 
 
 @app.command()
 def list(ctx: typer.Context):
+    """List configured and discovered models."""
     config = ctx.obj
 
     table = Table("Name", "Provider", "Default", "Source")
@@ -55,6 +56,7 @@ def add(
     provider: str,
     default: bool = typer.Option(False, "--default", help="Set as the default model"),
 ):
+    """Add a model to the configuration."""
     config = ctx.obj
     if name in config.models:
         rich.print(f"[red]Model '{name}' already exists.[/red]")
@@ -69,6 +71,7 @@ def add(
 
 @app.command()
 def remove(ctx: typer.Context, name: str):
+    """Remove a model from the configuration."""
     config = ctx.obj
     if name not in config.models:
         rich.print(f"[red]Model '{name}' not found.[/red]")

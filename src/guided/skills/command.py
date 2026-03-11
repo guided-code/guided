@@ -5,7 +5,7 @@ from rich.table import Table
 from guided.configure.config import save_config
 from guided.configure.schema import Skill
 
-app = typer.Typer(no_args_is_help=True)
+app = typer.Typer(no_args_is_help=True, help="Manage skills.")
 
 
 @app.command()
