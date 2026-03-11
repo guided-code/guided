@@ -11,6 +11,8 @@ dependencies = [
     "rich>=14.3.3",
     "dunamai>=1.26.0",
     "ollama>=0.6.1",
+    "deepeval>=3.8.9",
+    "duckduckgo-search>=8.1.1",
 ]
 
 [dependency-groups]
