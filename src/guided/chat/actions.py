@@ -16,6 +16,8 @@ class ActionContext:
 
 
 class Action(ABC):
+    """Base class for all actions."""
+
     @property
     @abstractmethod
     def name(self) -> str:
@@ -38,6 +40,8 @@ class Action(ABC):
 
 
 class ExitAction(Action):
+    """Exits interactive chat mode."""
+
     @property
     def name(self) -> str:
         return "exit"
@@ -56,6 +60,8 @@ class ExitAction(Action):
 
 
 class HelpAction(Action):
+    """Shows available actions."""
+
     @property
     def name(self) -> str:
         return "help"
@@ -78,6 +84,8 @@ class HelpAction(Action):
 
 
 class ActionRegistry:
+    """Registry for actions."""
+
     def __init__(self) -> None:
         self.actions: dict[str, Action] = {}
         self.main_names: set[str] = set()
@@ -116,8 +124,11 @@ class ActionRegistry:
         return sorted(self.main_names)
 
 
-def default_registry() -> ActionRegistry:
+def get_actions_registry() -> ActionRegistry:
     registry = ActionRegistry()
-    registry.register(ExitAction())
-    registry.register(HelpAction())
+
+    default_actions = [ExitAction(), HelpAction()]
+    for action in default_actions:
+        registry.register(action)
+
     return registry

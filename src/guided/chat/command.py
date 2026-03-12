@@ -9,7 +9,7 @@ import typer
 from rich.console import Console
 
 from guided import get_version
-from guided.chat.actions import ActionContext, default_registry
+from guided.chat.actions import ActionContext, get_actions_registry
 from guided.configure.config import get_default_config
 from guided.skills.executor import execute_tool, skill_to_tool
 
@@ -28,7 +28,7 @@ class ChatSession:
         self.messages = messages if messages is not None else []
         self.is_logging = is_logging
         self.is_interactive = is_interactive
-        self.registry = default_registry()
+        self.registry = get_actions_registry()
         self._console = Console()
 
         default_skills = get_default_config().skills
@@ -114,6 +114,7 @@ class ChatSession:
             rich.print("Type [cyan]/help[/cyan] for available actions.\n")
 
             while True:
+                # User input prompt
                 try:
                     self._console.out("\n[You]:", style="dim", end="")
                     user_input = typer.prompt("", prompt_suffix=" ")
@@ -121,10 +122,12 @@ class ChatSession:
                     rich.print("\n[dim]Goodbye.[/dim]")
                     break
 
+                # Exit
                 if not user_input.strip():
                     rich.print("[dim]Goodbye.[/dim]")
                     break
 
+                # Action
                 if user_input.strip().startswith("/"):
                     action_context = ActionContext(
                         config=self.config,
@@ -138,6 +141,7 @@ class ChatSession:
                         break
                     continue
 
+                # Process response
                 self.messages.append({"role": "user", "content": user_input})
                 self._send(client, disable_tools=disable_tools)
 
@@ -206,9 +210,11 @@ class ChatSession:
             msg = response.message
             self.messages.append(msg)
 
+            # Tool call
             if not disable_tools and msg.tool_calls:
                 msg = self._execute_tool_calls(client, msg, disable_tools=disable_tools)
 
+            # Response
             if self.is_logging:
                 self._console.out("\n[Assistant]: ", style="dim", end="")
                 if msg.content:

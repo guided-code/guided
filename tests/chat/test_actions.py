@@ -8,7 +8,7 @@ from guided.chat.actions import (
     ActionRegistry,
     ExitAction,
     HelpAction,
-    default_registry,
+    get_actions_registry,
 )
 
 
@@ -16,7 +16,7 @@ def make_ctx(registry=None) -> ActionContext:
     return ActionContext(
         config=MagicMock(),
         messages=[],
-        registry=registry or default_registry(),
+        registry=registry or get_actions_registry(),
     )
 
 
@@ -59,19 +59,19 @@ def test_help_action_lists_actions(capsys):
 
 
 def test_dispatch_exit():
-    registry = default_registry()
+    registry = get_actions_registry()
     ctx = make_ctx(registry)
     assert registry.dispatch("/exit", ctx) is True
 
 
 def test_dispatch_help():
-    registry = default_registry()
+    registry = get_actions_registry()
     ctx = make_ctx(registry)
     assert registry.dispatch("/help", ctx) is False
 
 
 def test_dispatch_unknown(capsys):
-    registry = default_registry()
+    registry = get_actions_registry()
     ctx = make_ctx(registry)
     result = registry.dispatch("/nope", ctx)
     assert result is False
@@ -79,7 +79,7 @@ def test_dispatch_unknown(capsys):
 
 
 def test_dispatch_non_action_returns_none():
-    registry = default_registry()
+    registry = get_actions_registry()
     ctx = make_ctx(registry)
     assert registry.dispatch("hello", ctx) is None
 
@@ -103,10 +103,10 @@ def test_dispatch_passes_args():
     assert received["args"] == "foo bar"
 
 
-# default_registry
+# get_actions_registry
 
 
-def test_default_registry_has_exit_and_help():
-    registry = default_registry()
+def test_actions_registry_has_exit_and_help():
+    registry = get_actions_registry()
     assert "exit" in registry.actions
     assert "help" in registry.actions
