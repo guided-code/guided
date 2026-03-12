@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -13,12 +14,19 @@ from guided.skills.executor import execute_tool, skill_to_tool
 
 
 class ChatSession:
-    def __init__(self, config, messages: Optional[list] = None, logging: bool = False):
+    def __init__(
+        self,
+        config,
+        messages: Optional[list] = None,
+        is_logging: bool = False,
+        is_interactive: bool = False,
+    ):
         self.config = config
         self.model: Optional[str] = None
         self.provider = None
         self.messages = messages if messages is not None else []
-        self.logging = logging
+        self.is_logging = is_logging
+        self.is_interactive = is_interactive
         self.registry = default_registry()
         self._console = Console()
 
@@ -59,7 +67,8 @@ class ChatSession:
                 None,
             )
             if self._provider_key is None:
-                rich.print(f"[red]No provider found for model '{model}'.[/red]")
+                if self.is_logging:
+                    rich.print(f"[red]No provider found for model '{model}'.[/red]")
                 raise typer.Exit(1)
 
         return self.model
@@ -72,7 +81,8 @@ class ChatSession:
 
         self.provider = self.config.providers.get(provider_key)
         if self.provider is None:
-            rich.print(f"[red]Provider '{provider_key}' not found in config.[/red]")
+            if self.is_logging:
+                rich.print(f"[red]Provider '{provider_key}' not found in config.[/red]")
             raise typer.Exit(1)
 
         return self.provider
@@ -86,40 +96,46 @@ class ChatSession:
 
         client = ollama.Client(host=self.provider.base_url)
 
-        if text is not None:
+        # Send once
+        if not self.is_interactive:
             self.messages.append({"role": "user", "content": text})
             self._send(client, disable_tools=disable_tools)
-            return
 
-        rich.print(
-            f"[bold]Chatting with[/bold] [cyan]{self.model}[/cyan] via [cyan]{self.provider.name}[/cyan]"
-        )
-        rich.print("Type your message and press Enter. Press Ctrl+C to exit.")
-        rich.print("Type [cyan]/help[/cyan] for available actions.\n")
+        # Interactive loop
+        else:
+            rich.print(
+                f"[bold]Chatting with[/bold] [cyan]{self.model}[/cyan] via [cyan]{self.provider.name}[/cyan]"
+            )
+            rich.print("Type your message and press Enter. Press Ctrl+C to exit.")
+            rich.print("Type [cyan]/help[/cyan] for available actions.\n")
 
-        while True:
-            try:
-                self._console.out("\nYou:", style="dim", end="")
-                user_input = typer.prompt("", prompt_suffix=" ")
-            except (typer.Abort, KeyboardInterrupt, EOFError):
-                rich.print("\n[dim]Goodbye.[/dim]")
-                break
-
-            if not user_input.strip():
-                rich.print("[dim]Goodbye.[/dim]")
-                break
-
-            if user_input.strip().startswith("/"):
-                action_context = ActionContext(
-                    config=self.config, messages=self.messages, registry=self.registry
-                )
-                should_exit = self.registry.dispatch(user_input.strip(), action_context)
-                if should_exit:
+            while True:
+                try:
+                    self._console.out("\nYou:", style="dim", end="")
+                    user_input = typer.prompt("", prompt_suffix=" ")
+                except (typer.Abort, KeyboardInterrupt, EOFError):
+                    rich.print("\n[dim]Goodbye.[/dim]")
                     break
-                continue
 
-            self.messages.append({"role": "user", "content": user_input})
-            self._send(client, disable_tools=False)
+                if not user_input.strip():
+                    rich.print("[dim]Goodbye.[/dim]")
+                    break
+
+                if user_input.strip().startswith("/"):
+                    action_context = ActionContext(
+                        config=self.config,
+                        messages=self.messages,
+                        registry=self.registry,
+                    )
+                    should_exit = self.registry.dispatch(
+                        user_input.strip(), action_context
+                    )
+                    if should_exit:
+                        break
+                    continue
+
+                self.messages.append({"role": "user", "content": user_input})
+                self._send(client, disable_tools=disable_tools)
 
     def _execute_tool_calls(
         self, client, msg, disable_tools: bool = False
@@ -132,7 +148,7 @@ class ChatSession:
             return None
 
         while msg.tool_calls:
-            if self.logging:
+            if self.is_logging:
                 for tool_call in msg.tool_calls:
                     rich.print(
                         f"[dim]  → {tool_call.function.name}({dict(tool_call.function.arguments)})[/dim]"
@@ -147,7 +163,7 @@ class ChatSession:
                     result = execute_tool(skill, dict(fn.arguments))
                 self.messages.append({"role": "tool", "content": result})
 
-            if self.logging:
+            if self.is_logging:
                 with self._console.status("[bold magenta]Thinking...", spinner="dots"):
                     response = client.chat(
                         model=self.model,
@@ -169,7 +185,7 @@ class ChatSession:
     def _send(self, client, disable_tools: bool = False):
         """Send the current message history, executing any tool calls, and print the reply."""
         try:
-            if self.logging:
+            if self.is_logging:
                 with self._console.status("[bold magenta]Thinking...", spinner="dots"):
                     response = client.chat(
                         model=self.model,
@@ -189,7 +205,7 @@ class ChatSession:
             if not disable_tools and msg.tool_calls:
                 msg = self._execute_tool_calls(client, msg, disable_tools=disable_tools)
 
-            if self.logging:
+            if self.is_logging:
                 self._console.out("\nAssistant: ", style="dim", end="")
                 if msg.content:
                     self._console.out(msg.content, end="")
@@ -199,7 +215,7 @@ class ChatSession:
                     sys.stdout.write(msg.content)
 
         except Exception as e:
-            if self.logging:
+            if self.is_logging:
                 rich.print(f"[red]Error: {e}[/red]")
             else:
                 sys.stderr.write(f"Error: {e}\n")
@@ -221,7 +237,12 @@ def chat(
             rich.print("[dim]Loaded agent context from AGENTS.md[/dim]")
         messages.append({"role": "system", "content": agents_content})
 
-    session = ChatSession(config=ctx.obj, messages=messages, logging=is_interactive)
+    session = ChatSession(
+        config=ctx.obj,
+        messages=messages,
+        is_logging=is_interactive or os.getenv("DEBUG") in [1, "1", "true", "yes"],
+        is_interactive=is_interactive,
+    )
     session.resolve_model(model)
     session.resolve_provider()
 
