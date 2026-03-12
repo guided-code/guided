@@ -6,10 +6,11 @@ CONTAINER_IMAGE = "alpine:latest"
 MOUNT_PATH = "/workspace"
 
 
-def run(command: list[str], cwd: Path | None = None) -> str:
-    """Run a command in a container with the CWD mounted as /workspace."""
+def read_file(path: str, cwd: Path | None = None) -> str:
+    """Read a file in a container where the current working folder is mounted as /workspace."""
     cwd = (cwd or Path.cwd()).resolve()
     client = docker.from_env()
+    command = "cat " + path + ""
 
     host_config = client.create_host_config(
         binds={str(cwd): {"bind": MOUNT_PATH, "mode": "rw"}}

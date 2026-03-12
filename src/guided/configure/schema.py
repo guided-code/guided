@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -17,8 +17,8 @@ class Model(BaseModel):
 class Skill(BaseModel):
     name: str
     description: str
-    type: str
     parameters: Dict[str, Any] = Field(default_factory=dict)
+    handler: Optional[Callable]
 
 
 class Configuration(BaseModel):

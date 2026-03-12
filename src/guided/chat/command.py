@@ -1,7 +1,7 @@
-import os
+import logging
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Self
 
 import ollama
 import rich
@@ -10,8 +10,15 @@ from rich.console import Console
 
 from guided import get_version
 from guided.chat.actions import ActionContext, get_actions_registry
-from guided.configure.config import get_default_config
-from guided.skills.executor import execute_tool, skill_to_tool
+from guided.configure.schema import Skill
+from guided.environment import is_debug
+from guided.skills.container import read_file
+from guided.skills.executor import execute_skill
+from guided.skills.web_search import search_web_text
+
+DEFAULT_TOOLS = [read_file, search_web_text]
+
+logger = logging.getLogger("guided.core")
 
 
 class ChatSession:
@@ -30,18 +37,13 @@ class ChatSession:
         self.is_interactive = is_interactive
         self.registry = get_actions_registry()
         self._console = Console()
+        self._tools = []
+        self._skills_by_name = {}
 
-        default_skills = get_default_config().skills
-        all_skills = {**default_skills, **config.skills}
-        self._skills_by_name = all_skills
-        self._tools = [
-            t
-            for skill in all_skills.values()
-            if (t := skill_to_tool(skill)) is not None
-        ]
+    def resolve_model(self, model: Optional[str] = None) -> Self:
+        """Set model or fallback to default model configuration"""
 
-    def resolve_model(self, model: Optional[str] = None) -> str:
-        """Resolve and set self.model from the config, returning the model name."""
+        # Use default model
         if model is None:
             model_cfg = next(
                 (m for m in self.config.models.values() if m.is_default), None
@@ -56,26 +58,22 @@ class ChatSession:
                 raise typer.Exit(1)
             self.model = model_cfg.name
             self._provider_key = model_cfg.provider
+
+        # Use specified model
         elif model in self.config.models:
             model_cfg = self.config.models[model]
             self.model = model_cfg.name
             self._provider_key = model_cfg.provider
-        else:
-            # Treat as a bare model name; find an ollama provider to use
-            self.model = model
-            self._provider_key = next(
-                (k for k, p in self.config.providers.items() if p.name == "ollama"),
-                None,
-            )
-            if self._provider_key is None:
-                if self.is_logging:
-                    rich.print(f"[red]No provider found for model '{model}'.[/red]")
-                raise typer.Exit(1)
 
-        return self.model
+        if self.model is None:
+            if self.is_logging:
+                rich.print("[red]Unable to set model or not found in config.[/red]")
+            raise typer.Exit(1)
 
-    def resolve_provider(self):
-        """Resolve and set self.provider from the config, returning the provider."""
+        return self
+
+    def resolve_provider(self) -> Self:
+        """Setup configured provider from model"""
         provider_key = getattr(self, "_provider_key", None)
         if provider_key is None:
             raise RuntimeError("Call resolve_model() before resolve_provider()")
@@ -86,7 +84,24 @@ class ChatSession:
                 rich.print(f"[red]Provider '{provider_key}' not found in config.[/red]")
             raise typer.Exit(1)
 
-        return self.provider
+        return self
+
+    def resolve_default_skills(self) -> Self:
+        """Setup default tools and skills"""
+
+        # Maps existing default tools to skills
+        self._tools = DEFAULT_TOOLS
+        for tool in self._tools:
+            skill = Skill(
+                name=tool.__name__,
+                description=tool.__doc__,
+                parameters={},
+                handler=tool,
+            )
+
+            self._skills_by_name[skill.name] = skill
+
+        return self
 
     def run(self, text: Optional[str] = None, disable_tools: bool = False):
         """Start the interactive chat loop or process a single message."""
@@ -168,7 +183,8 @@ class ChatSession:
                 if skill is None:
                     result = f"Error: unknown tool '{fn.name}'"
                 else:
-                    result = execute_tool(skill, dict(fn.arguments))
+                    exec = execute_skill(skill, **dict(fn.arguments))
+                    result = exec.result
                 self.messages.append({"role": "tool", "content": result})
 
             if self.is_logging:
@@ -214,6 +230,10 @@ class ChatSession:
             if not disable_tools and msg.tool_calls:
                 msg = self._execute_tool_calls(client, msg, disable_tools=disable_tools)
 
+            # Allow completion
+            if msg is None:
+                return
+
             # Response
             if self.is_logging:
                 self._console.out("\n[Assistant]: ", style="dim", end="")
@@ -225,6 +245,9 @@ class ChatSession:
                     sys.stdout.write(msg.content)
 
         except Exception as e:
+            # Print stacktrace
+            logging.error("Exception occurred", exc_info=True)
+
             if self.is_logging:
                 rich.print(f"[red]Error: {e}[/red]")
             else:
@@ -247,14 +270,17 @@ def chat(
             rich.print("[dim]Loaded agent context from AGENTS.md[/dim]")
         messages.append({"role": "system", "content": agents_content})
 
-    session = ChatSession(
-        config=ctx.obj,
-        messages=messages,
-        is_logging=is_interactive or os.getenv("DEBUG") in [1, "1", "true", "yes"],
-        is_interactive=is_interactive,
+    session = (
+        ChatSession(
+            config=ctx.obj,
+            messages=messages,
+            is_logging=is_interactive or is_debug(),
+            is_interactive=is_interactive,
+        )
+        .resolve_model(model)
+        .resolve_provider()
+        .resolve_default_skills()
     )
-    session.resolve_model(model)
-    session.resolve_provider()
 
     if is_interactive:
         session.run()

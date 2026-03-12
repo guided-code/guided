@@ -1,20 +1,31 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from ddgs import DDGS
 
 
-def search_text(
+def search_web_text(
     query: str,
     region: str = "us-en",
     safesearch: str = "off",
-    timelimit: str = "day",
+    timelimit: Optional[str] = None,
     max_results: int = 5,
     page: int = 1,
     backend: str = "duckduckgo",
 ) -> List[Dict[str, Any]]:
-    """Search the web using the duckduckgo-search package.
+    """
+    Search the Internet for a information using a search engine.
 
-    Returns a list of result dicts with 'title' and 'url' keys.
+    Args:
+        query: text search query.
+        region: us-en, uk-en, ru-ru, etc. Defaults to us-en.
+        safesearch: on, moderate, off. Defaults to "off".
+        timelimit: d, w, m, y. Defaults to None.
+        max_results: maximum number of results. Defaults to 5.
+        page: page of results. Defaults to 1.
+        backend: A single or comma-delimited backends. Defaults to "duckduckgo".
+
+    Returns:
+        List of dictionaries with search results.
     """
     results = []
     try:

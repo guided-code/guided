@@ -1,3 +1,6 @@
+import logging
+import os
+
 import rich
 import typer
 from pydantic import ValidationError
@@ -6,10 +9,15 @@ import guided
 from guided.chat.command import chat
 from guided.configure.command import setup_configuration
 from guided.configure.config import load_config
+from guided.environment import get_logging_level, is_debug
 from guided.models.command import app as models_app
 from guided.providers.command import app as providers_app
 from guided.skills.command import app as skills_app
 from guided.workspace.command import app as workspace_app
+
+if is_debug():
+    logging.basicConfig(level=get_logging_level())
+logger = logging.getLogger("guided.core")
 
 app = typer.Typer(
     no_args_is_help=True,

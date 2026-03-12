@@ -65,4 +65,4 @@ The default configuration includes an Ollama provider pointing to `http://localh
 
 ### Skills
 
-`Skills` are available tools which can be called to perform `Actions`.  The following is a list of tools.
+A `Skill` is a pydantic data object that represents a tool the LLM can use.  By default a set of `Skills` are registered in the skills modules.  When a skill is executed an invocation object `SkillExecution` captures results.

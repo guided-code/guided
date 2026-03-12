@@ -1,55 +1,29 @@
-from typing import Any
+import time
+from typing import Callable
 
 from guided.configure.schema import Skill
-from guided.skills.web_search import search_text
-
-_TOOL_PARAMETERS: dict[str, dict] = {
-    "web_search": {
-        "type": "object",
-        "properties": {
-            "query": {"type": "string", "description": "Search query"},
-        },
-        "required": ["query"],
-    },
-    "file_read": {
-        "type": "object",
-        "properties": {
-            "path": {
-                "type": "string",
-                "description": "Path to the file, relative to the project root",
-            },
-        },
-        "required": ["path"],
-    },
-}
+from guided.skills.schema import SkillExecution
 
 
-def skill_to_tool(skill: Skill) -> dict[str, Any] | None:
-    """Convert a Skill to an ollama tool definition, or None for unknown types."""
-    params = _TOOL_PARAMETERS.get(skill.type)
-    if params is None:
-        return None
-    return {
-        "type": "function",
-        "function": {
-            "name": skill.name,
-            "description": skill.description,
-            "parameters": params,
-        },
-    }
+def execute_skill(skill: Skill, **kwargs) -> SkillExecution:
+    # Initialize
+    exec = SkillExecution(skill=skill)
+    exec.status = "pending"
+    exec.start_time = time.process_time()
 
+    # Run
+    try:
+        assert isinstance(skill.handler, Callable), (
+            f"Skill(name={skill.name}) handler must be a callable function"
+        )
+        result = skill.handler(**kwargs)
+    except Exception as e:
+        exec.status = "error"
+        raise e
 
-def execute_tool(skill: Skill, arguments: dict[str, Any]) -> str:
-    """Execute a skill tool call and return the result as a string."""
-    if skill.type == "web_search":
-        results = search_text(arguments.get("query", ""))
-        if not results:
-            return "No results found."
-        return "\n".join(f"- {r['title']} ({r['url']})" for r in results[:5])
+    # Complete
+    exec.end_time = time.process_time()
+    exec.status = "complete"
+    exec.result = str(result)
 
-    if skill.type == "file_read":
-        from guided.skills import container
-
-        return container.run(["cat", arguments.get("path", "")])
-
-    return f"Error: unknown skill type '{skill.type}'"
+    return exec
