@@ -4,7 +4,10 @@ Pytest configuration for guided project.
 This module adds custom pytest options and fixtures for testing with LLM capabilities.
 """
 
+import os
+
 import pytest
+from deepeval.models import OllamaModel
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -31,3 +34,23 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list) -> None:
         for item in items:
             if "with_llm" in item.keywords:
                 item.add_marker(skip_llm)
+
+
+@pytest.fixture(scope="session")
+def eval_model():
+    """Return an OllamaModel for deepeval evaluation.
+
+    Requires the PYTEST_LOCAL_MODEL_NAME environment variables
+    and are skipped when the variable(s) is absent.
+    """
+    model_name = os.environ.get("PYTEST_LOCAL_MODEL_NAME")
+    base_url = os.environ.get("PYTEST_LOCAL_MODEL_BASE_URL", "http://localhost:11434")
+
+    if not model_name:
+        pytest.skip("PYTEST_LOCAL_MODEL_NAME not set — skipping LLM eval tests")
+
+    return OllamaModel(
+        model=model_name,
+        base_url=base_url,
+        temperature=0,
+    )

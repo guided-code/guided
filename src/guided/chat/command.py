@@ -14,7 +14,6 @@ from guided.skills.executor import execute_tool, skill_to_tool
 
 class ChatSession:
     def __init__(self, config, messages: Optional[list] = None):
-
         self.config = config
         self.model: Optional[str] = None
         self.provider = None
@@ -219,8 +218,6 @@ def chat(
     model: Optional[str] = typer.Argument(default=None, help="Model name to chat with"),
 ):
     """Chat interactively with a model, or pipe text via stdin for a single response."""
-    import sys
-
     interactive = sys.stdin.isatty()
     messages = []
 

@@ -89,7 +89,7 @@ AVAILABLE_TOOLS = [
 
 
 @patch("guided.skills.web_search.DDGS")
-def test_tool_correctness_web_search(mock_ddgs, ollama_model):
+def test_tool_correctness_web_search(mock_ddgs, eval_model):
     mock_instance = mock_ddgs.return_value.__enter__.return_value
     mock_instance.text.return_value = [
         {"title": "Python language", "href": "https://example.com/python"},
@@ -114,13 +114,13 @@ def test_tool_correctness_web_search(mock_ddgs, ollama_model):
 
     assert_test(
         test_case,
-        [ToolCorrectnessMetric(available_tools=AVAILABLE_TOOLS, model=ollama_model)],
+        [ToolCorrectnessMetric(available_tools=AVAILABLE_TOOLS, model=eval_model)],
     )
 
 
-def test_tool_correctness_wrong_tool_fails(ollama_model):
+def test_tool_correctness_wrong_tool_fails(eval_model):
     """ToolCorrectnessMetric should fail when the wrong tool is called."""
-    metric = ToolCorrectnessMetric(available_tools=AVAILABLE_TOOLS, model=ollama_model)
+    metric = ToolCorrectnessMetric(available_tools=AVAILABLE_TOOLS, model=eval_model)
 
     test_case = LLMTestCase(
         input="Search for python",

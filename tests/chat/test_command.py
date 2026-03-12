@@ -133,13 +133,16 @@ def test_chat_ollama_error(config_with_model):
 
 
 @pytest.mark.with_llm
-def test_chat_with_actual_ollama():
+@pytest.mark.asyncio
+async def test_chat_with_actual_ollama(eval_model):
     """Test chat command against a real Ollama instance if available."""
     config = make_config(
         providers={"ollama": OLLAMA_PROVIDER},
         models={
-            "qwen3-coder-next:latest": Model(
-                name="qwen3-coder-next:latest", provider="ollama", is_default=True
+            "llm": Model(
+                name=os.getenv("PYTEST_LOCAL_MODEL_NAME"),
+                provider="ollama",
+                is_default=True,
             )
         },
     )
@@ -152,10 +155,7 @@ def test_chat_with_actual_ollama():
         retrieval_context=["Donald Trump serves as the current president of America."],
     )
 
-    model = OllamaModel(
-        model=os.getenv("LOCAL_MODEL_NAME"),
-        temperature=0,
-    )
-    answer_relevancy_metric = AnswerRelevancyMetric(model=model)
+    answer_relevancy_metric = AnswerRelevancyMetric(model=eval_model)
     answer_relevancy_metric.measure(test_case)
+    assert answer_relevancy_metric.score is not None
     assert answer_relevancy_metric.score >= 0.75
