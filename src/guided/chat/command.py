@@ -8,6 +8,7 @@ import rich
 import typer
 from rich.console import Console
 
+from guided import get_version
 from guided.chat.actions import ActionContext, default_registry
 from guided.configure.config import get_default_config
 from guided.skills.executor import execute_tool, skill_to_tool
@@ -103,6 +104,9 @@ class ChatSession:
 
         # Interactive loop
         else:
+            rich.print("[bold][Guided][/bold]")
+            rich.print("Version: ", get_version())
+            rich.print("")
             rich.print(
                 f"[bold]Chatting with[/bold] [cyan]{self.model}[/cyan] via [cyan]{self.provider.name}[/cyan]"
             )
@@ -111,7 +115,7 @@ class ChatSession:
 
             while True:
                 try:
-                    self._console.out("\nYou:", style="dim", end="")
+                    self._console.out("\n[You]:", style="dim", end="")
                     user_input = typer.prompt("", prompt_suffix=" ")
                 except (typer.Abort, KeyboardInterrupt, EOFError):
                     rich.print("\n[dim]Goodbye.[/dim]")
@@ -206,7 +210,7 @@ class ChatSession:
                 msg = self._execute_tool_calls(client, msg, disable_tools=disable_tools)
 
             if self.is_logging:
-                self._console.out("\nAssistant: ", style="dim", end="")
+                self._console.out("\n[Assistant]: ", style="dim", end="")
                 if msg.content:
                     self._console.out(msg.content, end="")
                 self._console.out("\n")
