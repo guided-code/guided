@@ -113,14 +113,15 @@ class ChatSession:
                 continue
 
             self.messages.append({"role": "user", "content": user_input})
-            self._send(client)
+            self._send(client, disable_tools=False)
 
-    def _execute_tool_calls(self, client, msg) -> Optional[object]:
+    def _execute_tool_calls(
+        self, client, msg, disable_tools: bool = False
+    ) -> Optional[object]:
         """If msg has tool calls, execute them and re-query until a plain response arrives.
 
         Returns the final message with no tool calls, or None if the initial msg had none.
         """
-
         if not msg.tool_calls:
             return None
 
@@ -137,32 +138,32 @@ class ChatSession:
             response = client.chat(
                 model=self.model,
                 messages=self.messages,
-                tools=self._tools or None,
+                tools=[] if disable_tools else (self._tools or None),
             )
             msg = response.message
             self.messages.append(msg)
 
         return msg
 
-    def _send(self, client):
+    def _send(self, client, disable_tools: bool = False):
         """Send the current message history, executing any tool calls, and print the reply."""
         try:
             with self._console.status("[bold magenta]Thinking...", spinner="dots"):
                 response = client.chat(
                     model=self.model,
                     messages=self.messages,
-                    tools=self._tools or None,
+                    tools=[] if disable_tools else (self._tools or None),
                 )
 
             msg = response.message
             self.messages.append(msg)
 
-            if msg.tool_calls:
+            if not disable_tools and msg.tool_calls:
                 for tool_call in msg.tool_calls:
                     rich.print(
                         f"[dim]  → {tool_call.function.name}({dict(tool_call.function.arguments)})[/dim]"
                     )
-                msg = self._execute_tool_calls(client, msg)
+                msg = self._execute_tool_calls(client, msg, disable_tools=disable_tools)
 
             self._console.out("\nAssistant: ", style="dim", end="")
             if msg.content:
@@ -173,7 +174,7 @@ class ChatSession:
             rich.print(f"[red]Error: {e}[/red]")
             raise typer.Exit(1)
 
-    def run_once(self, text: str) -> None:
+    def run_once(self, text: str, disable_tools: bool = False) -> None:
         """Send a single message from stdin and write the plain response to stdout."""
         self.messages.append({"role": "user", "content": text})
         client = ollama.Client(host=self.provider.base_url)
@@ -181,12 +182,12 @@ class ChatSession:
             response = client.chat(
                 model=self.model,
                 messages=self.messages,
-                tools=self._tools or None,
+                tools=[] if disable_tools else (self._tools or None),
             )
             msg = response.message
             self.messages.append(msg)
 
-            while msg.tool_calls:
+            if not disable_tools and msg.tool_calls:
                 for tool_call in msg.tool_calls:
                     fn = tool_call.function
                     skill = self._skills_by_name.get(fn.name)
@@ -200,7 +201,7 @@ class ChatSession:
                 response = client.chat(
                     model=self.model,
                     messages=self.messages,
-                    tools=self._tools or None,
+                    tools=[] if disable_tools else (self._tools or None),
                 )
                 msg = response.message
                 self.messages.append(msg)
@@ -237,7 +238,7 @@ def chat(
     else:
         text = sys.stdin.read().strip()
         if text:
-            session.run_once(text)
+            session.run_once(text, disable_tools=True)
 
 
 def load_agents_md() -> Optional[str]:
