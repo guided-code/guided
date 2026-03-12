@@ -24,6 +24,11 @@ Run a single test by name:
 bin/test tests/test_models_command.py::test_list_empty_no_ollama
 ```
 
+Running tests with LLM support, which are normally skipped
+```bash
+bin/test --with-llm tests/
+```
+
 The `guide configure` command accepts an `--use_default` flag to reset the configuration to the default settings.
 
 ## Architecture

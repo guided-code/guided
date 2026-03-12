@@ -1,7 +1,11 @@
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
 import typer
+from deepeval.metrics import AnswerRelevancyMetric
+from deepeval.models import OllamaModel
+from deepeval.test_case import LLMTestCase
 from typer.testing import CliRunner
 
 from guided.chat.command import chat
@@ -126,3 +130,32 @@ def test_chat_ollama_error(config_with_model):
         result = runner.invoke(app, ["llama3"], obj=config_with_model, input="hello\n")
     assert result.exit_code == 1
     assert "Error" in result.output
+
+
+@pytest.mark.with_llm
+def test_chat_with_actual_ollama():
+    """Test chat command against a real Ollama instance if available."""
+    config = make_config(
+        providers={"ollama": OLLAMA_PROVIDER},
+        models={
+            "qwen3-coder-next:latest": Model(
+                name="qwen3-coder-next:latest", provider="ollama", is_default=True
+            )
+        },
+    )
+
+    question = "Who is the current president of the United States of America?"
+    result = runner.invoke(app, [], obj=config, input=question)
+    test_case = LLMTestCase(
+        input=question,
+        actual_output=result.output,
+        retrieval_context=["Donald Trump serves as the current president of America."],
+    )
+
+    model = OllamaModel(
+        model=os.getenv("LOCAL_MODEL_NAME"),
+        temperature=0,
+    )
+    answer_relevancy_metric = AnswerRelevancyMetric(model=model)
+    answer_relevancy_metric.measure(test_case)
+    assert answer_relevancy_metric.score >= 0.75
