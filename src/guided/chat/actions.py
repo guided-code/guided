@@ -64,6 +64,10 @@ class HelpAction(Action):
     def description(self) -> str:
         return "List available actions"
 
+    @property
+    def aliases(self) -> list[str]:
+        return ["h", "?"]
+
     def execute(self, ctx: ActionContext, args: str = "") -> bool:
         rich.print("\n[bold]Available actions:[/bold]")
         for name in ctx.registry.get_all_action_names():
