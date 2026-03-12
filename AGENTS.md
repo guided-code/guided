@@ -14,21 +14,6 @@ bin/test      # Run all tests (uv run pytest tests/)
 bin/lint      # Lint and format (ruff check --fix + ruff format on src/)
 ```
 
-Run a single test file:
-```bash
-bin/test tests/test_models_command.py
-```
-
-Run a single test by name:
-```bash
-bin/test tests/test_models_command.py::test_list_empty_no_ollama
-```
-
-Running tests with LLM support, which are normally skipped
-```bash
-bin/test --with-llm tests/
-```
-
 The `guide configure` command accepts an `--use_default` flag to reset the configuration to the default settings.
 
 ## Architecture
@@ -53,16 +38,31 @@ The `guide configure` command accepts an `--use_default` flag to reset the confi
   - `actions.py` — In-chat slash command system: `Action` ABC, `ActionContext`, `ActionRegistry`, built-in `ExitAction` (`/exit`, `/quit`, `/bye`, `/q`) and `HelpAction` (`/help`)
 - `agents/` — stub (not registered in CLI)
 
+## Tests
+
+Unit tests should be written to confirm functionality.  Tests are organized in the `tests` folder and tests using the `typer.testing.CliRunner` are in the `tests/cli` folder.  
+
+Run a single test file:
+```bash
+bin/test tests/test_models_command.py
+```
+
+Run a single test by name:
+```bash
+bin/test tests/test_models_command.py::test_list_empty_no_ollama
+```
+
+Running tests with LLM support, which are normally skipped
+```bash
+bin/test --with-llm tests/
+```
+
 ### Config file
 
 Config is stored as YAML at `~/.guided/config.yaml`. The schema is `Configuration`. The default model is selected via the `is_default` flag on `Model`.
 
 The default configuration includes an Ollama provider pointing to `http://localhost:11434`.
 
-### In-chat actions
+### Skills
 
-In-chat slash commands (e.g. `/exit`, `/help`) are called **actions**. The user-facing term is "actions". The code class name is `Action` (not `SlashCommand`). These will eventually delegate to CLI Typer commands.
-
-### Testing patterns
-
-Tests use `typer.testing.CliRunner` to invoke CLI commands and `unittest.mock.patch` to mock `load_config`/`save_config`. Tests live in `tests/` and do not require any running services.
+`Skills` are available tools which can be called to perform `Actions`.  The following is a list of tools.
