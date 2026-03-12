@@ -19,3 +19,7 @@ dist/
 
 # IDE
 *.swp
+
+# Deepeval
+.deepeval
+

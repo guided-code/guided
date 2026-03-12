@@ -438,6 +438,20 @@ wheels = [
 ]
 
 [[package]]
+name = "ddgs"
+version = "9.11.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "lxml" },
+    { name = "primp" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/06/9e/d89f0c24d78812bad0b4150d9a432925aa756b4bfeb4ef4815fe6ff8f2a6/ddgs-9.11.3.tar.gz", hash = "sha256:6098c030d6806217260071d85e38d9b94b99fe326a3c40ebf5de25f620528ae2", size = 34776, upload_time = "2026-03-11T07:12:02.041Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0b/9d/018d745128a9a33aff3e6b8f0260f7b970784d4b31573d36ee233b2e4db1/ddgs-9.11.3-py3-none-any.whl", hash = "sha256:596d656d00219b4748d839de1fa9a9c3eb5dd36db07365331f7526201115f18a", size = 43691, upload_time = "2026-03-11T07:12:00.21Z" },
+]
+
+[[package]]
 name = "debugpy"
 version = "1.8.20"
 source = { registry = "https://pypi.org/simple" }
@@ -525,17 +539,30 @@ wheels = [
 ]
 
 [[package]]
-name = "duckduckgo-search"
-version = "8.1.1"
+name = "docker-py"
+version = "1.10.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "click" },
-    { name = "lxml" },
-    { name = "primp" },
+    { name = "docker-pycreds" },
+    { name = "requests" },
+    { name = "six" },
+    { name = "websocket-client" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/10/ef/07791a05751e6cc9de1dd49fb12730259ee109b18e6d097e25e6c32d5617/duckduckgo_search-8.1.1.tar.gz", hash = "sha256:9da91c9eb26a17e016ea1da26235d40404b46b0565ea86d75a9f78cc9441f935", size = 22868, upload_time = "2025-07-06T15:30:59.73Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/2d/906afc44a833901fc6fed1a89c228e5c88fbfc6bd2f3d2f0497fdfb9c525/docker-py-1.10.6.tar.gz", hash = "sha256:4c2a75875764d38d67f87bc7d03f7443a3895704efc57962bdf6500b8d4bc415", size = 84129, upload_time = "2016-11-02T23:49:04.907Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/db/72/c027b3b488b1010cf71670032fcf7e681d44b81829d484bb04e31a949a8d/duckduckgo_search-8.1.1-py3-none-any.whl", hash = "sha256:f48adbb06626ee05918f7e0cef3a45639e9939805c4fc179e68c48a12f1b5062", size = 18932, upload_time = "2025-07-06T15:30:58.339Z" },
+    { url = "https://files.pythonhosted.org/packages/23/c7/1fd6d4d620809fe2f323869d719e2dd0086c939b67021303a9ec40f5a05b/docker_py-1.10.6-py2.py3-none-any.whl", hash = "sha256:35b506e95861914fa5ad57a6707e3217b4082843b883be246190f57013948aba", size = 50003, upload_time = "2016-11-02T23:49:07.683Z" },
+]
+
+[[package]]
+name = "docker-pycreds"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c5/e6/d1f6c00b7221e2d7c4b470132c931325c8b22c51ca62417e300f5ce16009/docker-pycreds-0.4.0.tar.gz", hash = "sha256:6ce3270bcaf404cc4c3e27e4b6c70d3521deae82fb508767870fdbf772d584d4", size = 8754, upload_time = "2018-11-29T03:26:50.996Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f5/e8/f6bd1eee09314e7e6dee49cbe2c5e22314ccdb38db16c9fc72d2fa80d054/docker_pycreds-0.4.0-py2.py3-none-any.whl", hash = "sha256:7266112468627868005106ec19cd0d722702d2b7d5912a28e19b826c3d37af49", size = 8982, upload_time = "2018-11-29T03:26:49.575Z" },
 ]
 
 [[package]]
@@ -721,8 +748,9 @@ name = "guided"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "ddgs" },
     { name = "deepeval" },
-    { name = "duckduckgo-search" },
+    { name = "docker-py" },
     { name = "dunamai" },
     { name = "ollama" },
     { name = "pydantic" },
@@ -741,8 +769,9 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "ddgs", specifier = ">=9.11.3" },
     { name = "deepeval", specifier = ">=3.8.9" },
-    { name = "duckduckgo-search", specifier = ">=8.1.1" },
+    { name = "docker-py", specifier = ">=1.10.6" },
     { name = "dunamai", specifier = ">=1.26.0" },
     { name = "ollama", specifier = ">=0.6.1" },
     { name = "pydantic", specifier = ">=2.12.5" },

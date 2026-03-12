@@ -23,12 +23,22 @@ READ_FILE_SKILL = Skill(
     parameters={"allowed_paths": ["."]},
 )
 
+WEB_SEARCH_SKILL = Skill(
+    name="web_search",
+    description="Search the internet and retrieve web page content",
+    type="web_search",
+    parameters={},
+)
+
 
 def get_default_config() -> Configuration:
     return Configuration(
         version=guided.__version__,
         providers={"ollama": OLLAMA_PROVIDER},
-        skills={"read_file": READ_FILE_SKILL},
+        skills={
+            "read_file": READ_FILE_SKILL,
+            "web_search": WEB_SEARCH_SKILL,
+        },
     )
 
 

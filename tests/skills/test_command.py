@@ -30,10 +30,11 @@ def config_with_skill():
 # list
 
 
-def test_list_empty(empty_config):
+def test_list_empty_shows_defaults(empty_config):
     result = runner.invoke(app, ["list"], obj=empty_config)
     assert result.exit_code == 0
-    assert "No skills configured" in result.output
+    assert "read_file" in result.output
+    assert "web_search" in result.output
 
 
 def test_list_shows_skills(config_with_skill):

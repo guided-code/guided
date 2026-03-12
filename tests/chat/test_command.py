@@ -23,7 +23,7 @@ OLLAMA_PROVIDER = Provider(name="ollama", base_url="http://localhost:11434")
 def config_with_model():
     return make_config(
         providers={"ollama": OLLAMA_PROVIDER},
-        models={"llama3": Model(name="llama3", provider="ollama")},
+        models={"codellama": Model(name="codellama:34b-python", provider="ollama")},
     )
 
 
@@ -43,6 +43,7 @@ def empty_config():
 def _mock_response(content: str) -> MagicMock:
     response = MagicMock()
     response.message.content = content
+    response.message.tool_calls = None
     return response
 
 
@@ -63,7 +64,7 @@ def test_chat_uses_default_model(config_with_default):
         mock_client_cls.return_value.chat.return_value = _mock_response("Hello!")
         result = runner.invoke(app, [], obj=config_with_default, input="hi\n\n")
     assert result.exit_code == 0
-    assert "llama3" in result.output
+    assert "Hello!" in result.output
     mock_client_cls.return_value.chat.assert_called_once()
 
 
@@ -86,7 +87,7 @@ def test_chat_model_by_config_key(config_with_model):
             app, ["llama3"], obj=config_with_model, input="hello\n\n"
         )
     assert result.exit_code == 0
-    assert "llama3" in result.output
+    assert "Hi there!" in result.output
     mock_client_cls.return_value.chat.assert_called_once()
 
 
@@ -97,10 +98,10 @@ def test_chat_bare_model_name():
     config = make_config(providers={"ollama": OLLAMA_PROVIDER}, models={})
     with patch("guided.chat.command.ollama.Client") as mock_client_cls:
         mock_client_cls.return_value.chat.return_value = _mock_response("Sure!")
-        result = runner.invoke(app, ["mistral"], obj=config, input="hey\n\n")
+        result = runner.invoke(app, ["codellama"], obj=config, input="hey\n\n")
     assert result.exit_code == 0
     call_args = mock_client_cls.return_value.chat.call_args
-    assert call_args.kwargs["model"] == "mistral"
+    assert call_args.kwargs["model"] == "codellama"
 
 
 # Provider not found

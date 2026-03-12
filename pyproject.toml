@@ -12,7 +12,8 @@ dependencies = [
     "dunamai>=1.26.0",
     "ollama>=0.6.1",
     "deepeval>=3.8.9",
-    "duckduckgo-search>=8.1.1",
+    "docker-py>=1.10.6",
+    "ddgs>=9.11.3",
 ]
 
 [dependency-groups]

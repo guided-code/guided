@@ -2,7 +2,7 @@ import rich
 import typer
 from rich.table import Table
 
-from guided.configure.config import save_config
+from guided.configure.config import get_default_config, save_config
 from guided.configure.schema import Skill
 
 app = typer.Typer(no_args_is_help=True, help="Manage skills.")
@@ -13,13 +13,16 @@ def list(ctx: typer.Context):
     """List configured skills."""
     config = ctx.obj
 
-    if not config.skills:
+    default_skills = get_default_config().skills
+    skills = {**default_skills, **config.skills}
+
+    if not skills:
         rich.print("[yellow]No skills configured.[/yellow]")
         return
 
     table = Table("Name", "Type", "Description")
-    for skill in sorted(config.skills.values(), key=lambda s: s.name):
-        table.add_row(skill.name, skill.type, skill.description)
+    for skill in sorted(skills.values(), key=lambda s: s.name):
+        table.add_row(f"[dim]{skill.name}[/dim]", skill.type, skill.description)
 
     rich.print(table)
 

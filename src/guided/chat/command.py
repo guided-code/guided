@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -7,16 +8,28 @@ import typer
 from rich.console import Console
 
 from guided.chat.actions import ActionContext, default_registry
+from guided.configure.config import get_default_config
+from guided.skills.executor import execute_tool, skill_to_tool
 
 
 class ChatSession:
     def __init__(self, config, messages: Optional[list] = None):
+
         self.config = config
         self.model: Optional[str] = None
         self.provider = None
         self.messages = messages if messages is not None else []
         self.registry = default_registry()
         self._console = Console()
+
+        default_skills = get_default_config().skills
+        all_skills = {**default_skills, **config.skills}
+        self._skills_by_name = all_skills
+        self._tools = [
+            t
+            for skill in all_skills.values()
+            if (t := skill_to_tool(skill)) is not None
+        ]
 
     def resolve_model(self, model: Optional[str] = None) -> str:
         """Resolve and set self.model from the config, returning the model name."""
@@ -48,9 +61,6 @@ class ChatSession:
             if self._provider_key is None:
                 rich.print(f"[red]No provider found for model '{model}'.[/red]")
                 raise typer.Exit(1)
-
-        if self.model is None:
-            raise ValueError("Could not resolve model")
 
         return self.model
 
@@ -84,7 +94,7 @@ class ChatSession:
 
         while True:
             try:
-                self._console.out("\n[You]:", style="dim", end="")
+                self._console.out("\nYou:", style="dim", end="")
                 user_input = typer.prompt("", prompt_suffix=" ")
             except (typer.Abort, KeyboardInterrupt, EOFError):
                 rich.print("\n[dim]Goodbye.[/dim]")
@@ -106,34 +116,101 @@ class ChatSession:
             self.messages.append({"role": "user", "content": user_input})
             self._send(client)
 
+    def _execute_tool_calls(self, client, msg) -> Optional[object]:
+        """If msg has tool calls, execute them and re-query until a plain response arrives.
+
+        Returns the final message with no tool calls, or None if the initial msg had none.
+        """
+
+        if not msg.tool_calls:
+            return None
+
+        while msg.tool_calls:
+            for tool_call in msg.tool_calls:
+                fn = tool_call.function
+                skill = self._skills_by_name.get(fn.name)
+                if skill is None:
+                    result = f"Error: unknown tool '{fn.name}'"
+                else:
+                    result = execute_tool(skill, dict(fn.arguments))
+                self.messages.append({"role": "tool", "content": result})
+
+            response = client.chat(
+                model=self.model,
+                messages=self.messages,
+                tools=self._tools or None,
+            )
+            msg = response.message
+            self.messages.append(msg)
+
+        return msg
+
     def _send(self, client):
-        """Send the current message history and append the assistant reply."""
+        """Send the current message history, executing any tool calls, and print the reply."""
         try:
             with self._console.status("[bold magenta]Thinking...", spinner="dots"):
-                stream = client.chat(
+                response = client.chat(
                     model=self.model,
                     messages=self.messages,
-                    stream=True,
+                    tools=self._tools or None,
                 )
-                # Eagerly fetch the first chunk so the spinner is shown while
-                # waiting for the model to respond, then stop it before printing.
-                chunks = list(stream)
 
-            self._console.out("\n[Assistant]: ", style="dim", end="")
-            full_response = []
-            for chunk in chunks:
-                content = chunk.message.content
-                if content:
-                    self._console.out(content, end="")
-                    full_response.append(content)
+            msg = response.message
+            self.messages.append(msg)
 
+            if msg.tool_calls:
+                for tool_call in msg.tool_calls:
+                    rich.print(
+                        f"[dim]  → {tool_call.function.name}({dict(tool_call.function.arguments)})[/dim]"
+                    )
+                msg = self._execute_tool_calls(client, msg)
+
+            self._console.out("\nAssistant: ", style="dim", end="")
+            if msg.content:
+                self._console.out(msg.content, end="")
             self._console.out("\n")
-            self.messages.append(
-                {"role": "assistant", "content": "".join(full_response)}
-            )
 
         except Exception as e:
             rich.print(f"[red]Error: {e}[/red]")
+            raise typer.Exit(1)
+
+    def run_once(self, text: str) -> None:
+        """Send a single message from stdin and write the plain response to stdout."""
+        self.messages.append({"role": "user", "content": text})
+        client = ollama.Client(host=self.provider.base_url)
+        try:
+            response = client.chat(
+                model=self.model,
+                messages=self.messages,
+                tools=self._tools or None,
+            )
+            msg = response.message
+            self.messages.append(msg)
+
+            while msg.tool_calls:
+                for tool_call in msg.tool_calls:
+                    fn = tool_call.function
+                    skill = self._skills_by_name.get(fn.name)
+                    result = (
+                        execute_tool(skill, dict(fn.arguments))
+                        if skill is not None
+                        else f"Error: unknown tool '{fn.name}'"
+                    )
+                    self.messages.append({"role": "tool", "content": result})
+
+                response = client.chat(
+                    model=self.model,
+                    messages=self.messages,
+                    tools=self._tools or None,
+                )
+                msg = response.message
+                self.messages.append(msg)
+
+            if msg.content:
+                sys.stdout.write(msg.content)
+
+        except Exception as e:
+            sys.stderr.write(f"Error: {e}")
             raise typer.Exit(1)
 
 
@@ -141,19 +218,29 @@ def chat(
     ctx: typer.Context,
     model: Optional[str] = typer.Argument(default=None, help="Model name to chat with"),
 ):
-    """Chat interactively with a model."""
+    """Chat interactively with a model, or pipe text via stdin for a single response."""
+    import sys
+
+    interactive = sys.stdin.isatty()
     messages = []
 
     # Load and prefix AGENTS.md content
     agents_content = load_agents_md()
     if agents_content:
-        rich.print("[dim]Loaded agent context from AGENTS.md[/dim]")
+        if interactive:
+            rich.print("[dim]Loaded agent context from AGENTS.md[/dim]")
         messages.append({"role": "system", "content": agents_content})
 
     session = ChatSession(config=ctx.obj, messages=messages)
     session.resolve_model(model)
     session.resolve_provider()
-    return session.run()
+
+    if interactive:
+        session.run()
+    else:
+        text = sys.stdin.read().strip()
+        if text:
+            session.run_once(text)
 
 
 def load_agents_md() -> Optional[str]:

@@ -52,10 +52,16 @@ Configure your environment by running:
 guide configure
 ```
 
-Run the `serve` command to start a local server as an agent.  
+Start a TUI and chat directly
 
-```bash
-guide serve
+```
+guide chat
+```
+
+Or use a command line interface
+
+```
+echo "What files are in this directory?" | guide chat
 ```
 
 
