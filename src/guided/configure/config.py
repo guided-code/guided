@@ -6,13 +6,13 @@ import yaml
 import guided
 from guided.configure.schema import Configuration, Provider, Skill
 
-DEFAULT_GUIDED_HOME = Path.home() / ".guided"
+DEFAULT_GUIDED_HOME_PATH = Path.home() / ".guided"
 CONFIG_FILE_NAME = "config.yaml"
 OLLAMA_PROVIDER = Provider(name="ollama", base_url="http://localhost:11434")
 
 
 def get_guided_home() -> Path:
-    env_home = os.environ.get("GUIDED_HOME", str(DEFAULT_GUIDED_HOME))
+    env_home = os.environ.get("GUIDED_HOME_PATH", str(DEFAULT_GUIDED_HOME_PATH))
     return Path(env_home)
 
 
