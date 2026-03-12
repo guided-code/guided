@@ -88,6 +88,7 @@ AVAILABLE_TOOLS = [
 ]
 
 
+@pytest.mark.with_llm
 @patch("guided.skills.web_search.DDGS")
 def test_tool_correctness_web_search(mock_ddgs, eval_model):
     mock_instance = mock_ddgs.return_value.__enter__.return_value
@@ -118,6 +119,7 @@ def test_tool_correctness_web_search(mock_ddgs, eval_model):
     )
 
 
+@pytest.mark.with_llm
 def test_tool_correctness_wrong_tool_fails(eval_model):
     """ToolCorrectnessMetric should fail when the wrong tool is called."""
     metric = ToolCorrectnessMetric(available_tools=AVAILABLE_TOOLS, model=eval_model)
