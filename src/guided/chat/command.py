@@ -219,13 +219,13 @@ def chat(
     model: Optional[str] = typer.Argument(default=None, help="Model name to chat with"),
 ):
     """Chat interactively with a model, or pipe text via stdin for a single response."""
-    interactive = sys.stdin.isatty()
+    is_interactive = sys.stdin.isatty()
     messages = []
 
     # Load and prefix AGENTS.md content
     agents_content = load_agents_md()
     if agents_content:
-        if interactive:
+        if is_interactive:
             rich.print("[dim]Loaded agent context from AGENTS.md[/dim]")
         messages.append({"role": "system", "content": agents_content})
 
@@ -233,7 +233,7 @@ def chat(
     session.resolve_model(model)
     session.resolve_provider()
 
-    if interactive:
+    if is_interactive:
         session.run()
     else:
         text = sys.stdin.read().strip()
