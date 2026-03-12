@@ -13,11 +13,12 @@ from guided.skills.executor import execute_tool, skill_to_tool
 
 
 class ChatSession:
-    def __init__(self, config, messages: Optional[list] = None):
+    def __init__(self, config, messages: Optional[list] = None, logging: bool = False):
         self.config = config
         self.model: Optional[str] = None
         self.provider = None
         self.messages = messages if messages is not None else []
+        self.logging = logging
         self.registry = default_registry()
         self._console = Console()
 
@@ -76,14 +77,19 @@ class ChatSession:
 
         return self.provider
 
-    def run(self):
-        """Start the interactive chat loop."""
+    def run(self, text: Optional[str] = None, disable_tools: bool = False):
+        """Start the interactive chat loop or process a single message."""
         if self.model is None or self.provider is None:
             raise RuntimeError(
                 "Call resolve_model() and resolve_provider() before run()"
             )
 
         client = ollama.Client(host=self.provider.base_url)
+
+        if text is not None:
+            self.messages.append({"role": "user", "content": text})
+            self._send(client, disable_tools=disable_tools)
+            return
 
         rich.print(
             f"[bold]Chatting with[/bold] [cyan]{self.model}[/cyan] via [cyan]{self.provider.name}[/cyan]"
@@ -126,6 +132,12 @@ class ChatSession:
             return None
 
         while msg.tool_calls:
+            if self.logging:
+                for tool_call in msg.tool_calls:
+                    rich.print(
+                        f"[dim]  → {tool_call.function.name}({dict(tool_call.function.arguments)})[/dim]"
+                    )
+
             for tool_call in msg.tool_calls:
                 fn = tool_call.function
                 skill = self._skills_by_name.get(fn.name)
@@ -135,11 +147,20 @@ class ChatSession:
                     result = execute_tool(skill, dict(fn.arguments))
                 self.messages.append({"role": "tool", "content": result})
 
-            response = client.chat(
-                model=self.model,
-                messages=self.messages,
-                tools=[] if disable_tools else (self._tools or None),
-            )
+            if self.logging:
+                with self._console.status("[bold magenta]Thinking...", spinner="dots"):
+                    response = client.chat(
+                        model=self.model,
+                        messages=self.messages,
+                        tools=[] if disable_tools else (self._tools or None),
+                    )
+            else:
+                response = client.chat(
+                    model=self.model,
+                    messages=self.messages,
+                    tools=[] if disable_tools else (self._tools or None),
+                )
+
             msg = response.message
             self.messages.append(msg)
 
@@ -148,7 +169,14 @@ class ChatSession:
     def _send(self, client, disable_tools: bool = False):
         """Send the current message history, executing any tool calls, and print the reply."""
         try:
-            with self._console.status("[bold magenta]Thinking...", spinner="dots"):
+            if self.logging:
+                with self._console.status("[bold magenta]Thinking...", spinner="dots"):
+                    response = client.chat(
+                        model=self.model,
+                        messages=self.messages,
+                        tools=[] if disable_tools else (self._tools or None),
+                    )
+            else:
                 response = client.chat(
                     model=self.model,
                     messages=self.messages,
@@ -159,58 +187,22 @@ class ChatSession:
             self.messages.append(msg)
 
             if not disable_tools and msg.tool_calls:
-                for tool_call in msg.tool_calls:
-                    rich.print(
-                        f"[dim]  → {tool_call.function.name}({dict(tool_call.function.arguments)})[/dim]"
-                    )
                 msg = self._execute_tool_calls(client, msg, disable_tools=disable_tools)
 
-            self._console.out("\nAssistant: ", style="dim", end="")
-            if msg.content:
-                self._console.out(msg.content, end="")
-            self._console.out("\n")
+            if self.logging:
+                self._console.out("\nAssistant: ", style="dim", end="")
+                if msg.content:
+                    self._console.out(msg.content, end="")
+                self._console.out("\n")
+            else:
+                if msg.content:
+                    sys.stdout.write(msg.content)
 
         except Exception as e:
-            rich.print(f"[red]Error: {e}[/red]")
-            raise typer.Exit(1)
-
-    def run_once(self, text: str, disable_tools: bool = False) -> None:
-        """Send a single message from stdin and write the plain response to stdout."""
-        self.messages.append({"role": "user", "content": text})
-        client = ollama.Client(host=self.provider.base_url)
-        try:
-            response = client.chat(
-                model=self.model,
-                messages=self.messages,
-                tools=[] if disable_tools else (self._tools or None),
-            )
-            msg = response.message
-            self.messages.append(msg)
-
-            if not disable_tools and msg.tool_calls:
-                for tool_call in msg.tool_calls:
-                    fn = tool_call.function
-                    skill = self._skills_by_name.get(fn.name)
-                    result = (
-                        execute_tool(skill, dict(fn.arguments))
-                        if skill is not None
-                        else f"Error: unknown tool '{fn.name}'"
-                    )
-                    self.messages.append({"role": "tool", "content": result})
-
-                response = client.chat(
-                    model=self.model,
-                    messages=self.messages,
-                    tools=[] if disable_tools else (self._tools or None),
-                )
-                msg = response.message
-                self.messages.append(msg)
-
-            if msg.content:
-                sys.stdout.write(msg.content)
-
-        except Exception as e:
-            sys.stderr.write(f"Error: {e}")
+            if self.logging:
+                rich.print(f"[red]Error: {e}[/red]")
+            else:
+                sys.stderr.write(f"Error: {e}\n")
             raise typer.Exit(1)
 
 
@@ -229,7 +221,7 @@ def chat(
             rich.print("[dim]Loaded agent context from AGENTS.md[/dim]")
         messages.append({"role": "system", "content": agents_content})
 
-    session = ChatSession(config=ctx.obj, messages=messages)
+    session = ChatSession(config=ctx.obj, messages=messages, logging=is_interactive)
     session.resolve_model(model)
     session.resolve_provider()
 
@@ -238,7 +230,7 @@ def chat(
     else:
         text = sys.stdin.read().strip()
         if text:
-            session.run_once(text, disable_tools=True)
+            session.run(text=text)
 
 
 def load_agents_md() -> Optional[str]:
