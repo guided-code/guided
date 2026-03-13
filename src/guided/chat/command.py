@@ -209,40 +209,71 @@ class ChatSession:
     def _send(self, client, disable_tools: bool = False):
         """Send the current message history, executing any tool calls, and print the reply."""
         try:
+            status = None
             if self.is_logging:
-                with self._console.status("[bold magenta]Thinking...", spinner="dots"):
-                    response = client.chat(
-                        model=self.model,
-                        messages=self.messages,
-                        tools=[] if disable_tools else (self._tools or None),
-                    )
-            else:
-                response = client.chat(
-                    model=self.model,
-                    messages=self.messages,
-                    tools=[] if disable_tools else (self._tools or None),
+                status = self._console.status(
+                    "[bold magenta]Thinking...", spinner="dots"
                 )
+                status.start()
 
-            msg = response.message
-            self.messages.append(msg)
+            stream = client.chat(
+                model=self.model,
+                messages=self.messages,
+                tools=[] if disable_tools else (self._tools or None),
+                stream=True,
+                think=True,
+            )
+
+            if status is not None:
+                status.stop()
 
             # Tool call
-            if not disable_tools and msg.tool_calls:
-                msg = self._execute_tool_calls(client, msg, disable_tools=disable_tools)
+            # if not disable_tools and msg.tool_calls:
+            #     msg = self._execute_tool_calls(client, msg, disable_tools=disable_tools)
 
-            # Allow completion
-            if msg is None:
-                return
+            # Stream response
+            in_thinking = False
+            thinking = ""
+            content = ""
+            for chunk in stream:
+                # Started thinking
+                if chunk.message.thinking and not in_thinking:
+                    in_thinking = True
+                    if self.is_logging:
+                        self._console.out(
+                            "\n[Assistant (Thinking)]: ", style="dim magenta", end=""
+                        )
+                    else:
+                        self._console.out("<thinking>")
 
-            # Response
+                # Not thinking
+                if not chunk.message.thinking:
+                    # Stopped thinking
+                    if in_thinking:
+                        if self.is_logging:
+                            self._console.out(
+                                "\n\n[Assistant]: ", style="dim magenta", end=""
+                            )
+                        else:
+                            self._console.out("\n</thinking>")
+                    in_thinking = False
+
+                # Echo thinking
+                if in_thinking:
+                    thinking += chunk.message.thinking
+                    self._console.out(chunk.message.thinking, style="dim", end="")
+
+                # Echo content
+                else:
+                    content += chunk.message.content
+                    self._console.out(chunk.message.content, end="")
+
+            # Collect complete thoughts and message
+            self.messages.append(
+                {"role": "assistant", "thinking": thinking, "content": content}
+            )
             if self.is_logging:
-                self._console.out("\n[Assistant]: ", style="dim", end="")
-                if msg.content:
-                    self._console.out(msg.content, end="")
-                self._console.out("\n")
-            else:
-                if msg.content:
-                    sys.stdout.write(msg.content)
+                self._console.out("")
 
         except Exception as e:
             # Print stacktrace
