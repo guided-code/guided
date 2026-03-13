@@ -1,10 +1,10 @@
 import os
+from typing import Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
 import typer
 from deepeval.metrics import AnswerRelevancyMetric
-from deepeval.models import OllamaModel
 from deepeval.test_case import LLMTestCase
 from typer.testing import CliRunner
 
@@ -13,7 +13,15 @@ from guided.configure.schema import Configuration, Model, Provider
 
 runner = CliRunner()
 app = typer.Typer()
-app.command(name="chat")(run_chat)
+
+
+@app.command()
+def chat(
+    ctx: typer.Context,
+    model: Optional[str] = typer.Argument(default=None, help="Model name to chat with"),
+):
+    """Chat interactively with a model, or pipe text via stdin for a single response."""
+    run_chat(ctx.obj, model=model)
 
 
 def make_config(**kwargs) -> Configuration:
