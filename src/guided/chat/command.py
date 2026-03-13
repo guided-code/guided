@@ -9,7 +9,7 @@ from rich.console import Console
 
 from guided import get_version
 from guided.chat.actions import ActionContext, get_actions_registry
-from guided.configure.schema import Skill
+from guided.configure.schema import Configuration, Skill
 from guided.environment import is_debug
 from guided.skills.container import read_file
 from guided.skills.executor import execute_skill
@@ -255,11 +255,10 @@ class ChatSession:
             raise typer.Exit(1)
 
 
-def chat(
-    ctx: typer.Context,
-    model: Optional[str] = typer.Argument(default=None, help="Model name to chat with"),
+def run_chat(
+    config: Configuration,
+    model: Optional[str] = None,
 ):
-    """Chat interactively with a model, or pipe text via stdin for a single response."""
     is_interactive = sys.stdin.isatty()
     messages = []
 
@@ -272,7 +271,7 @@ def chat(
 
     session = (
         ChatSession(
-            config=ctx.obj,
+            config=config,
             messages=messages,
             is_logging=is_interactive or is_debug(),
             is_interactive=is_interactive,

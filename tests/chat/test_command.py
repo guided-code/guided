@@ -8,12 +8,12 @@ from deepeval.models import OllamaModel
 from deepeval.test_case import LLMTestCase
 from typer.testing import CliRunner
 
-from guided.chat.command import chat
+from guided.chat.command import run_chat
 from guided.configure.schema import Configuration, Model, Provider
 
 runner = CliRunner()
 app = typer.Typer()
-app.command()(chat)
+app.command(name="chat")(run_chat)
 
 
 def make_config(**kwargs) -> Configuration:

@@ -1,11 +1,12 @@
 import logging
+from typing import Optional
 
 import rich
 import typer
 from pydantic import ValidationError
 
 import guided
-from guided.chat.command import chat
+from guided.chat.command import run_chat
 from guided.configure.command import setup_configuration
 from guided.configure.config import load_config
 from guided.environment import get_logging_level, is_debug
@@ -45,12 +46,20 @@ def configure(
     setup_configuration(ctx.obj, overwrite_with_default=overwrite_with_default)
 
 
+@app.command()
+def chat(
+    ctx: typer.Context,
+    model: Optional[str] = typer.Argument(default=None, help="Model name to chat with"),
+):
+    """Chat interactively with a model, or pipe text via stdin for a single response."""
+    run_chat(ctx.obj, model=model)
+
+
 app.add_typer(models_app, name="models")
 app.add_typer(preferences_app, name="preferences")
 app.add_typer(providers_app, name="providers")
 app.add_typer(skills_app, name="skills")
 app.add_typer(workspace_app, name="workspace")
-app.command()(chat)
 
 
 @app.command()

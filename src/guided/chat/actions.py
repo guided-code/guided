@@ -100,7 +100,7 @@ class ClearAction(Action):
         ctx.messages.clear()
         agents_content = load_agents_md()
         if agents_content:
-            ctx.messages.append(agents_content)
+            ctx.messages.append({"role": "system", "content": agents_content})
         rich.print("[green]Chat messages cleared.[/green]")
         return False
 
