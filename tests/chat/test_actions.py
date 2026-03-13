@@ -110,3 +110,108 @@ def test_actions_registry_has_exit_and_help():
     registry = get_actions_registry()
     assert "exit" in registry.actions
     assert "help" in registry.actions
+
+
+# Alias dispatch
+
+
+def test_dispatch_quit_alias():
+    registry = get_actions_registry()
+    ctx = make_ctx(registry)
+    assert registry.dispatch("/quit", ctx) is True
+
+
+def test_dispatch_bye_alias():
+    registry = get_actions_registry()
+    ctx = make_ctx(registry)
+    assert registry.dispatch("/bye", ctx) is True
+
+
+def test_dispatch_q_alias():
+    registry = get_actions_registry()
+    ctx = make_ctx(registry)
+    assert registry.dispatch("/q", ctx) is True
+
+
+def test_dispatch_h_alias():
+    registry = get_actions_registry()
+    ctx = make_ctx(registry)
+    assert registry.dispatch("/h", ctx) is False
+
+
+def test_dispatch_question_mark_alias():
+    registry = get_actions_registry()
+    ctx = make_ctx(registry)
+    assert registry.dispatch("/?", ctx) is False
+
+
+# get_all_action_names
+
+
+def test_get_all_action_names_returns_main_names_only():
+    registry = get_actions_registry()
+    names = registry.get_all_action_names()
+    assert "exit" in names
+    assert "help" in names
+    # aliases should not appear in main names
+    assert "quit" not in names
+    assert "bye" not in names
+    assert "q" not in names
+    assert "h" not in names
+
+
+def test_get_all_action_names_is_sorted():
+    registry = get_actions_registry()
+    names = registry.get_all_action_names()
+    assert names == sorted(names)
+
+
+# ActionRegistry registration
+
+
+def test_register_duplicate_name_raises():
+    registry = ActionRegistry()
+
+    class Foo(Action):
+        @property
+        def name(self):
+            return "foo"
+
+        def execute(self, ctx, args=""):
+            return False
+
+    registry.register(Foo())
+    with pytest.raises(ValueError, match="already registered"):
+        registry.register(Foo())
+
+
+def test_register_conflicting_alias_raises():
+    registry = ActionRegistry()
+
+    class FooAction(Action):
+        @property
+        def name(self):
+            return "foo"
+
+        @property
+        def aliases(self):
+            return ["shared"]
+
+        def execute(self, ctx, args=""):
+            return False
+
+    class BarAction(Action):
+        @property
+        def name(self):
+            return "bar"
+
+        @property
+        def aliases(self):
+            return ["shared"]
+
+        def execute(self, ctx, args=""):
+            return False
+
+    registry.register(FooAction())
+    with pytest.raises(ValueError, match="conflicts"):
+        registry.register(BarAction())
