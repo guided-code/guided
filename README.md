@@ -29,6 +29,8 @@ The goal of Guided is to provide a framework for engineers to manage the directi
 
 We recommend using [Ollama](https://ollama.com/); install it if you have not already. Install a model which supports tool calling and thinking.
 
+Use [uv](https://docs.astral.sh/uv/) to manage the Python virtual environment.  
+
 Install the CLI tool.  
 
 Run the installation script (e.g. - always check an installation script by downloading and reading it first)
@@ -57,7 +59,7 @@ echo "What files are in this directory?" | guide chat
 
 ## Agents
 
-Agents can be either third party agents or local agents. The default settings are to use local agents. The recommendation is to use local agents.
+Agents can be either third party agents or local agents. The default settings are to use local agents. 
 
 ## Tasks
 

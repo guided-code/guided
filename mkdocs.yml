@@ -1,0 +1,5 @@
+site_name: Guided
+nav:
+  - Getting started: index.md
+  - Setup: setup/index.md
+theme: readthedocs
