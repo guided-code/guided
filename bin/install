@@ -1,42 +1,42 @@
-#!/bin/bash
+#!/bin/sh
 
 set -euo pipefail
 
 install_location=$HOME/guided
-repo_location=git@github.com:henrytseng/guided.git
+repo_location=git@github.com:guided-code/guided.git
 
 cleanup() {
   cd - > /dev/null
 }
 
-# Check for local installation
-check_installation() {
-  echo "[.]Checking if Guided is already installed..."
-  if command -v guide &> /dev/null; then
-    echo "Guided ($(guide --version)) is already installed at $(which guide)"
+ensure_uv() {
+  if [ ! command -v uv &> /dev/null ]; then
+    echo "[.]Error: uv is not installed. Please install uv first."
     exit 1
   fi
 }
 
-# Checkout git repository
+# Checkout or update git repository
 download() {
-  echo "[.]Downloading Guided..."
-  git clone $repo_location $install_location
+  if [ -d "$install_location" ]; then
+    echo "[.]Updating Guided at $install_location..."
+    git -C "$install_location" pull
+  else
+    echo "[.]Downloading Guided..."
+    git clone $repo_location $install_location
+  fi
 }
 
-# Add path
-modify_path() {
-  echo "[.]Modifying environment path..."
-  if [ -f $HOME/.zshrc ]; then
-    read -p "Found $HOME/.zshrc. Add Guided to PATH? y/[n]: " yn
-    case $yn in
-        [Yy]* ) 
-          echo 'export PATH=$PATH:$HOME/guided/bin' >> $HOME/.zshrc
-          echo "Modifying $HOME/.zshrc..."
-        ;;
-        * ) echo "Skipping...";;
-    esac
-  fi
+# Build the Python executable
+build() {
+  echo "[.]Building Guided..."
+  uv build
+}
+
+# Add
+install() {
+  echo "[.]Installing Guided..."
+  uv tool install --editable .
 }
 
 # Show instructions
@@ -44,9 +44,6 @@ show_instructions() {
   echo ""
   echo "[.]Instructions..."
   echo "Guided has been installed to $install_location"
-  echo "Please update your environment by running the following command:"
-  echo ""
-  echo 'source $HOME/.zshrc'
   echo ""
   echo "You can now use guide commands."
 }
@@ -57,7 +54,8 @@ cd $DIR/..
 trap cleanup SIGINT EXIT
 
 # Start
-check_installation
+ensure_uv
 download
-modify_path
+build
+install
 show_instructions
