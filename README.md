@@ -43,7 +43,7 @@ Install the CLI tool.
 Run the installation script (e.g. - always check an installation script by downloading and reading it first)
 
 ```bash
-curl "https://raw.githubusercontent.com/henrytseng/guided/refs/heads/main/bin/install" | sh -h
+curl "https://raw.githubusercontent.com/guided-code/guided/refs/heads/main/bin/install" | sh -h
 ```
 
 Configure your environment by running:
@@ -84,7 +84,8 @@ Find documentation in the [docs](docs/index.md) folder.
 
 ## Contributing
 
-We encourage you to contribute to Guided. Guided is about building great tools to enable engineers to build more. Join us!
+We encourage you to contribute to Guided. Guided is about building great tools to enable engineers to build more. Join us!  [Read about contributing](CONTRIBUTING.md
+)
 
 ## License
 
