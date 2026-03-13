@@ -75,3 +75,8 @@ bin/test --with-llm tests/
 Use the env variable `LOGGING_LEVEL` to set the Python logging level.
 
 Use the env variable `DEBUG=1` to turn on debugging mode.
+
+
+## Documentation
+
+Features are documented in the `docs` folder.  Keep this folder up to date and reference it to reflect changes.  

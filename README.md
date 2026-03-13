@@ -29,7 +29,7 @@ The goal of Guided is to provide a framework for engineers to manage the directi
 
 We recommend using [Ollama](https://ollama.com/); install it if you have not already. Install a model which supports tool calling and thinking.
 
-Install the CLI tool.
+Install the CLI tool.  
 
 Run the installation script (e.g. - always check an installation script by downloading and reading it first)
 
@@ -45,13 +45,13 @@ guide configure
 
 Start a TUI and chat directly
 
-```
+```bash
 guide chat
 ```
 
 Or use a command line interface
 
-```
+```bash
 echo "What files are in this directory?" | guide chat
 ```
 

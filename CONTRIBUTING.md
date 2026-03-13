@@ -1,8 +1,11 @@
 CONTRIBUTING.MD
 ---------------
 
-Here's how to contribute.  First fork the repository, then clone your fork and
-create a branch for your feature or bug fix.
+Here's how to contribute.  
+
+Fork the repository.  
+
+Then clone your fork and create a branch for your feature or bug fix.
 
 ```
     git clone git@github.com:your-username/guided.git
