@@ -28,7 +28,7 @@ The goal of Guided is to provide a framework for engineers to manage the directi
 
 ## Usage
 
-We recommend using [Ollama](https://ollama.com/); install it if you have not already.  
+We recommend using [Ollama](https://ollama.com/); install it if you have not already.  Install a model which supports tool calling and thinking.  
 
 Install the CLI tool.
 
