@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+
 
 import pytest
 
@@ -18,7 +18,7 @@ from guided.configure.schema import Configuration, Preference
 
 def make_ctx(registry=None, config=None) -> ActionContext:
     return ActionContext(
-        config=config or MagicMock(),
+        config=config if config is not None else Configuration(),
         messages=[],
         registry=registry or get_actions_registry(),
     )

@@ -1,20 +1,19 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 import rich
+from pydantic import BaseModel, ConfigDict
 
-from guided.configure.schema import Preference
-
-if TYPE_CHECKING:
-    from guided.configure.schema import Configuration
+from guided.configure.schema import Configuration, Preference
 
 
-@dataclass
-class ActionContext:
-    config: "Configuration"
+class ActionContext(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    config: Configuration
     messages: list
-    registry: "ActionRegistry"
+    registry: ActionRegistry
 
 
 class Action(ABC):
@@ -85,6 +84,50 @@ class HelpAction(Action):
         return False
 
 
+class ClearAction(Action):
+    """Clears the current chat messages context."""
+
+    @property
+    def name(self) -> str:
+        return "clear"
+
+    @property
+    def description(self) -> str:
+        return "Clear the current chat messages"
+
+    def execute(self, ctx: ActionContext, args: str = "") -> bool:
+        ctx.messages.clear()
+        rich.print("[green]Chat messages cleared.[/green]")
+        return False
+
+
+class HistoryAction(Action):
+    """Shows all previous chat messages."""
+
+    @property
+    def name(self) -> str:
+        return "history"
+
+    @property
+    def description(self) -> str:
+        return "Show all previous chat messages"
+
+    def execute(self, ctx: ActionContext, args: str = "") -> bool:
+        if not ctx.messages:
+            rich.print("[dim]No messages in the chat history.[/dim]")
+            return False
+
+        rich.print("\n[bold]Chat History:[/bold]")
+        for i, msg in enumerate(ctx.messages, start=1):
+            role = msg.get("role", "unknown")
+            content = msg.get("content", "")
+            rich.print(f"\n[dim]--- Message {i} ({role.capitalize()}) ---[/dim]")
+            rich.print(f"[cyan]{content}[/cyan]")
+            rich.print("[dim]---[/dim]")
+        rich.print()
+        return False
+
+
 class SetPreferenceAction(Action):
     """Sets a preference for the current chat session."""
 
@@ -103,7 +146,9 @@ class SetPreferenceAction(Action):
             return False
         key, value = parts
         ctx.config.preferences[key] = Preference(key=key, value=value)
-        rich.print(f"[green]Preference '{key}' set to '{value}' for this session.[/green]")
+        rich.print(
+            f"[green]Preference '{key}' set to '{value}' for this session.[/green]"
+        )
         return False
 
 
@@ -198,7 +243,15 @@ class ActionRegistry:
 def get_actions_registry() -> ActionRegistry:
     registry = ActionRegistry()
 
-    default_actions = [ExitAction(), HelpAction(), SetPreferenceAction(), GetPreferenceAction(), UnsetPreferenceAction()]
+    default_actions = [
+        ExitAction(),
+        HelpAction(),
+        ClearAction(),
+        HistoryAction(),
+        SetPreferenceAction(),
+        GetPreferenceAction(),
+        UnsetPreferenceAction(),
+    ]
     for action in default_actions:
         registry.register(action)
 
