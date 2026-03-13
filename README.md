@@ -1,40 +1,30 @@
 Guided
----------
+========
 
-What is Guided?  
+## What is Guided?  
 
-Guided is a CLI tool designed to amplify the work of engineers by providing the scaffolding necessary to build great software with agentic AI resources.
+Guided is a CLI tool designed to amplify the work of engineers using AI.  
 
-Guided leverages containerized environments and provides tools to build workflows in parallel, geared towards separating concerns for greater maintainability and scalability.  
+The idea is simple.  Avoid spaghetti code and create maintainable code by making a solid scaffold.  
 
-Changes to a project are managed in a containerized environment associated with a Git worktree.  Project level details are managed in a workspace.  
+* Provide a framework to execute in parallel
+* Leverage local LLMs with instruction following and thinking
+* Use tools in a containerized environment
+* Log everything and make it reversible
 
-Features:
-
-- CLI tool to manage the development lifecycle of a project
-- Multiple agent management
-- Containerization of the development environment
-- Testing tools
-- Planning tools
-
+---
 
 ## Philosophy
 
-We believe that while work can be automated, engineers are the important piece of the puzzle.  And while automation and artificial intelligence can perform a tremendous amount of work, engineers understand what is being doine and ultimately are able to guide the direction of a project and utilize these tools to build better and better products.  
+We believe that while work can be automated, engineers are an important piece of the puzzle when it comes to managing software.  
 
+While automation and artificial intelligence can be leveraged to write code quickly, managing the direction of a long term project will require a deeper level of understanding.  
 
-## How to use Guided?
+Properly planned code can go a long way to not only solve problems scaling but also increase velocity and maintainability.  
 
-Planning is the important part of the puzzle.  
+The goal of Guided is to provide a framework for engineers to manage the direction of a project while leveraging AI to execute the work.  
 
-In the same way that spaghetti code, a result of poor planning, is difficult to maintain and extend, poorly planned AI generated code will be difficult to maintain and extend.  The challenge of poorly planned code leads to exponential increases in time spent engineering.  Properly planned code can not only scale to solve larger and larger problems but also can be maintained and produce higher velocity over the lifetime of a project.  
-
-Use workspaces to manage a project.  Workspaces are composed of stages.  Each stage represents a set of changes, or commits, in a codebase and is tagged deliberately as a Git tag using source control.  
-
-A changelog is used to track the changes across different stages of a project.  
-
-Additionally, a compaction process is used to review the current state of the project and determine if the project can be simplified or decisions and their reversals can be removed.  
-
+---
 
 ## Usage
 
