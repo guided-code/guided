@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
@@ -9,91 +9,68 @@ from guided.skills.command import app
 runner = CliRunner()
 
 
-@pytest.fixture
-def empty_config():
-    return Configuration()
-
-
-@pytest.fixture
-def config_with_skill():
-    return Configuration(
-        skills={
-            "read_file": Skill(
-                name="read_file",
-                description="Read the contents of a local file",
-                type="file_read",
-            )
-        }
-    )
+def make_skill(name="myskill", description="A skill") -> Skill:
+    return Skill(name=name, description=description, parameters={}, handler=None)
 
 
 # list
 
 
-def test_list_empty_shows_defaults(empty_config):
-    result = runner.invoke(app, ["list"], obj=empty_config)
+def test_list_no_skills():
+    result = runner.invoke(app, ["list"], obj=Configuration())
     assert result.exit_code == 0
-    assert "read_file" in result.output
-    assert "web_search" in result.output
+    assert "No skills configured" in result.output
 
 
-def test_list_shows_skills(config_with_skill):
-    result = runner.invoke(app, ["list"], obj=config_with_skill)
+@pytest.mark.xfail(
+    strict=True,
+    reason="bug: skills list accesses skill.type but Skill schema has no 'type' field",
+)
+def test_list_shows_configured_skills():
+    skill = make_skill(name="do_thing", description="Does the thing")
+    config = Configuration(skills={"do_thing": skill})
+    result = runner.invoke(app, ["list"], obj=config)
     assert result.exit_code == 0
-    assert "read_file" in result.output
-    assert "file_read" in result.output
-    assert "Read the contents" in result.output
-
-
-# add
-
-
-def test_add_skill(empty_config):
-    saved = MagicMock()
-    with patch("guided.skills.command.save_config", saved):
-        result = runner.invoke(
-            app,
-            ["add", "write_file", "file_write", "--description", "Write to a local file"],
-            obj=empty_config,
-        )
-    assert result.exit_code == 0
-    assert "added" in result.output
-    saved.assert_called_once()
-    config = saved.call_args[0][0]
-    assert "write_file" in config.skills
-    assert config.skills["write_file"].type == "file_write"
-    assert config.skills["write_file"].description == "Write to a local file"
-
-
-def test_add_duplicate_skill(config_with_skill):
-    with patch("guided.skills.command.save_config") as saved:
-        result = runner.invoke(
-            app,
-            ["add", "read_file", "file_read", "--description", "Duplicate"],
-            obj=config_with_skill,
-        )
-    assert result.exit_code == 1
-    assert "already exists" in result.output
-    saved.assert_not_called()
+    assert "do_thing" in result.output
+    assert "Does the thing" in result.output
 
 
 # remove
 
 
-def test_remove_skill(config_with_skill):
-    saved = MagicMock()
-    with patch("guided.skills.command.save_config", saved):
-        result = runner.invoke(app, ["remove", "read_file"], obj=config_with_skill)
+def test_remove_skill():
+    skill = make_skill(name="myskill")
+    config = Configuration(skills={"myskill": skill})
+    with patch("guided.skills.command.save_config") as mock_save:
+        result = runner.invoke(app, ["remove", "myskill"], obj=config)
     assert result.exit_code == 0
-    assert "removed" in result.output
-    saved.assert_called_once()
-    config = saved.call_args[0][0]
-    assert "read_file" not in config.skills
+    assert "myskill" in result.output
+    mock_save.assert_called_once()
 
 
-def test_remove_nonexistent_skill(empty_config):
-    with patch("guided.skills.command.save_config") as saved:
-        result = runner.invoke(app, ["remove", "nonexistent"], obj=empty_config)
+def test_remove_skill_deletes_from_config():
+    skill = make_skill(name="myskill")
+    config = Configuration(skills={"myskill": skill})
+    with patch("guided.skills.command.save_config"):
+        runner.invoke(app, ["remove", "myskill"], obj=config)
+    assert "myskill" not in config.skills
+
+
+def test_remove_nonexistent_skill():
+    config = Configuration()
+    result = runner.invoke(app, ["remove", "ghost"], obj=config)
     assert result.exit_code == 1
     assert "not found" in result.output
-    saved.assert_not_called()
+
+
+# add
+
+
+def test_add_duplicate_skill():
+    skill = make_skill(name="myskill")
+    config = Configuration(skills={"myskill": skill})
+    result = runner.invoke(
+        app, ["add", "myskill", "tooltype", "--description", "desc"], obj=config
+    )
+    assert result.exit_code == 1
+    assert "already exists" in result.output

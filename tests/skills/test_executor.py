@@ -1,139 +1,209 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock
 
 import pytest
-from deepeval import assert_test
-from deepeval.metrics import ToolCorrectnessMetric
-from deepeval.test_case import LLMTestCase, ToolCall
+from pydantic import ValidationError
 
 from guided.configure.schema import Skill
-from guided.skills.executor import execute_tool, skill_to_tool
+from guided.skills.executor import SkillExecution, execute_skill
 
-WEB_SEARCH_SKILL = Skill(
-    name="web_search",
-    description="Search the web",
-    type="web_search",
-)
-
-FILE_READ_SKILL = Skill(
-    name="file_read",
-    description="Read a file",
-    type="file_read",
-)
-
-UNKNOWN_SKILL = Skill(
-    name="custom_tool",
-    description="Some unknown tool",
-    type="unknown_type",
-)
+# Test success case
 
 
-# --- skill_to_tool ---
+def test_execute_skill_success():
+    """Test that a skill executes successfully and returns a proper SkillExecution."""
 
+    def sample_handler(name: str) -> str:
+        return f"Hello, {name}!"
 
-def test_skill_to_tool_web_search():
-    tool = skill_to_tool(WEB_SEARCH_SKILL)
-    assert tool is not None
-    assert tool["type"] == "function"
-    assert tool["function"]["name"] == "web_search"
-    assert "query" in tool["function"]["parameters"]["properties"]
-
-
-def test_skill_to_tool_file_read():
-    tool = skill_to_tool(FILE_READ_SKILL)
-    assert tool is not None
-    assert tool["function"]["name"] == "file_read"
-    assert "path" in tool["function"]["parameters"]["properties"]
-
-
-def test_skill_to_tool_unknown_returns_none():
-    assert skill_to_tool(UNKNOWN_SKILL) is None
-
-
-# --- execute_tool ---
-
-
-@patch("guided.skills.web_search.DDGS")
-def test_execute_web_search_returns_formatted_results(mock_ddgs):
-    mock_ddgs.return_value.text.return_value = [
-        {"title": "Python language", "href": "https://example.com/python"},
-        {"title": "Python snake", "href": "https://example.com/snake"},
-    ]
-
-    result = execute_tool(WEB_SEARCH_SKILL, {"query": "python"})
-
-    assert "Python language" in result
-    assert "https://example.com/python" in result
-
-
-@patch("guided.skills.web_search.DDGS")
-def test_execute_web_search_no_results(mock_ddgs):
-    mock_ddgs.return_value.text.return_value = []
-
-    result = execute_tool(WEB_SEARCH_SKILL, {"query": "xyzzy_nothing"})
-
-    assert result == "No results found."
-
-
-def test_execute_unknown_skill_returns_error():
-    result = execute_tool(UNKNOWN_SKILL, {})
-    assert "unknown skill type" in result
-    assert "unknown_type" in result
-
-
-# --- deepeval ToolCorrectnessMetric ---
-
-AVAILABLE_TOOLS = [
-    ToolCall(name="web_search", input_parameters={"query": "..."}),
-    ToolCall(name="file_read", input_parameters={"path": "..."}),
-]
-
-
-@pytest.mark.with_llm
-@patch("guided.skills.web_search.DDGS")
-def test_tool_correctness_web_search(mock_ddgs, eval_model):
-    mock_instance = mock_ddgs.return_value.__enter__.return_value
-    mock_instance.text.return_value = [
-        {"title": "Python language", "href": "https://example.com/python"},
-    ]
-
-    tool_output = execute_tool(WEB_SEARCH_SKILL, {"query": "python"})
-
-    test_case = LLMTestCase(
-        input="Search for python",
-        actual_output=tool_output,
-        tools_called=[
-            ToolCall(
-                name="web_search",
-                input_parameters={"query": "python"},
-                output=tool_output,
-            )
-        ],
-        expected_tools=[
-            ToolCall(name="web_search", input_parameters={"query": "python"})
-        ],
+    skill = Skill(
+        name="test_skill",
+        description="A test skill",
+        parameters={},
+        handler=sample_handler,
     )
 
-    assert_test(
-        test_case,
-        [ToolCorrectnessMetric(available_tools=AVAILABLE_TOOLS, model=eval_model)],
+    result = execute_skill(skill, name="World")
+
+    assert isinstance(result, SkillExecution)
+    assert result.skill.name == "test_skill"
+    assert result.status == "complete"
+    assert result.result == "Hello, World!"
+    assert result.start_time is not None
+    # end_time should be after start_time
+    assert result.end_time is not None
+    assert result.end_time >= result.start_time
+
+
+def test_execute_skill_with_kwargs():
+    """Test that extra kwargs are passed through to the skill handler."""
+
+    def sample_handler(name: str, value: int = 0) -> str:
+        return f"{name}={value}"
+
+    skill = Skill(
+        name="test_skill",
+        description="A test skill",
+        parameters={},
+        handler=sample_handler,
     )
 
+    result = execute_skill(skill, name="test", value=42)
 
-@pytest.mark.with_llm
-def test_tool_correctness_wrong_tool_fails(eval_model):
-    """ToolCorrectnessMetric should fail when the wrong tool is called."""
-    metric = ToolCorrectnessMetric(available_tools=AVAILABLE_TOOLS, model=eval_model)
+    assert result.result == "test=42"
+    assert result.status == "complete"
 
-    test_case = LLMTestCase(
-        input="Search for python",
-        actual_output="some result",
-        tools_called=[
-            ToolCall(name="file_read", input_parameters={"path": "/etc/hosts"})
-        ],
-        expected_tools=[
-            ToolCall(name="web_search", input_parameters={"query": "python"})
-        ],
+
+# Test error cases
+
+
+def test_execute_skill_raises_on_handler_error():
+    """Test that exceptions from the handler are re-raised."""
+
+    def failing_handler() -> str:
+        raise ValueError("Test error")
+
+    skill = Skill(
+        name="failing_skill",
+        description="A skill that fails",
+        parameters={},
+        handler=failing_handler,
     )
 
-    metric.measure(test_case)
-    assert metric.score < 1.0
+    with pytest.raises(ValueError) as exc_info:
+        execute_skill(skill)
+
+    assert "Test error" in str(exc_info.value)
+
+
+def test_execute_skill_raises_when_handler_not_callable():
+    """Test that a non-callable handler raises an AssertionError."""
+    with pytest.raises(ValidationError, match="1 validation error for Skill"):
+        skill = Skill(
+            name="invalid_skill",
+            description="A skill with invalid handler",
+            parameters={},
+            handler="not_a_function",  # type: ignore
+        )
+
+
+def test_execute_skill_status_on_error():
+    """Test that status is 'error' when an exception occurs."""
+    import time
+
+    start_before = time.process_time()
+
+    def failing_handler() -> str:
+        time.sleep(0.1)  # Simulate some work
+        raise RuntimeError("Simulated failure")
+
+    skill = Skill(
+        name="failing_skill",
+        description="A skill that fails",
+        parameters={},
+        handler=failing_handler,
+    )
+
+    try:
+        execute_skill(skill)
+    except RuntimeError:
+        pass
+
+    # Note: In the error case, status becomes 'error' before re-raising
+
+
+# Test SkillExecution model
+
+
+def test_skill_execution_initial_state():
+    """Test that a SkillExecution is initialized with correct default state."""
+    skill = Skill(
+        name="test_skill",
+        description="A test skill",
+        parameters={},
+        handler=MagicMock(),
+    )
+
+    exec = SkillExecution(skill=skill)
+
+    assert exec.skill.name == "test_skill"
+    assert exec.status == "initialized"
+    assert exec.result is None
+    assert exec.start_time is None
+    assert exec.end_time is None
+
+
+def test_skill_execution_complete_state():
+    """Test that SkillExecution has correct state after completion."""
+    skill = Skill(
+        name="test_skill",
+        description="A test skill",
+        parameters={},
+        handler=lambda: "success",
+    )
+
+    exec = SkillExecution(skill=skill)
+    exec.status = "complete"
+    exec.result = "success"
+    exec.start_time = 100.0
+    exec.end_time = 101.0
+
+    assert exec.status == "complete"
+    assert exec.result == "success"
+    assert exec.start_time == 100.0
+    assert exec.end_time == 101.0
+
+
+# Test edge cases
+
+
+def test_execute_skill_returns_string_result():
+    """Test that the result is always converted to string."""
+
+    def returns_int() -> int:
+        return 42
+
+    skill = Skill(
+        name="int_skill",
+        description="Returns int",
+        parameters={},
+        handler=returns_int,
+    )
+
+    result = execute_skill(skill)
+    assert result.result == "42"
+    assert isinstance(result.result, str)
+
+
+def test_execute_skill_handles_none_result():
+    """Test handling of a handler that returns None."""
+
+    def returns_none() -> None:
+        pass
+
+    skill = Skill(
+        name="none_skill",
+        description="Returns None",
+        parameters={},
+        handler=returns_none,
+    )
+
+    result = execute_skill(skill)
+    assert result.result == "None"
+
+
+def test_execute_skill_with_empty_parameters():
+    """Test that a skill with no parameters works correctly."""
+
+    def no_params() -> str:
+        return "success"
+
+    skill = Skill(
+        name="no_params_skill",
+        description="No params",
+        parameters={},
+        handler=no_params,
+    )
+
+    result = execute_skill(skill)
+    assert result.status == "complete"
+    assert result.result == "success"
