@@ -10,6 +10,7 @@ from guided.configure.command import setup_configuration
 from guided.configure.config import load_config
 from guided.environment import get_logging_level, is_debug
 from guided.models.command import app as models_app
+from guided.preferences.command import app as preferences_app
 from guided.providers.command import app as providers_app
 from guided.skills.command import app as skills_app
 from guided.workspace.command import app as workspace_app
@@ -45,6 +46,7 @@ def configure(
 
 
 app.add_typer(models_app, name="models")
+app.add_typer(preferences_app, name="preferences")
 app.add_typer(providers_app, name="providers")
 app.add_typer(skills_app, name="skills")
 app.add_typer(workspace_app, name="workspace")

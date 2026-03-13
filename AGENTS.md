@@ -2,11 +2,11 @@
 
 Guided is a CLI tool designed to amplify the work of engineers by providing the scaffolding necessary to build great software with agentic AI resources.
 
-Changes to a project are managed in a containerized environment associated with a Git worktree.  Project level details are managed in a workspace.  
+Changes to a project are managed in a containerized environment associated with a Git worktree. Project level details are managed in a workspace.
 
 ## Commands
 
-Scripts can be executed from the project base folder.  All scripts require `uv` to be installed.
+Scripts can be executed from the project base folder. All scripts require `uv` to be installed.
 
 ```bash
 bin/guide     # Run CLI from source code
@@ -38,25 +38,6 @@ The `guide configure` command accepts an `--use_default` flag to reset the confi
   - `actions.py` — In-chat slash command system: `Action` ABC, `ActionContext`, `ActionRegistry`, built-in `ExitAction` (`/exit`, `/quit`, `/bye`, `/q`) and `HelpAction` (`/help`)
 - `agents/` — stub (not registered in CLI)
 
-## Tests
-
-Unit tests should be written to confirm functionality.  Tests are organized in the `tests` folder and tests using the `typer.testing.CliRunner` are in the `tests/cli` folder.  
-
-Run a single test file:
-```bash
-bin/test tests/test_models_command.py
-```
-
-Run a single test by name:
-```bash
-bin/test tests/test_models_command.py::test_list_empty_no_ollama
-```
-
-Running tests with LLM support, which are normally skipped
-```bash
-bin/test --with-llm tests/
-```
-
 ### Config file
 
 Config is stored as YAML at `~/.guided/config.yaml`. The schema is `Configuration`. The default model is selected via the `is_default` flag on `Model`.
@@ -65,4 +46,32 @@ The default configuration includes an Ollama provider pointing to `http://localh
 
 ### Skills
 
-A `Skill` is a pydantic data object that represents a tool the LLM can use.  By default a set of `Skills` are registered in the skills modules.  When a skill is executed an invocation object `SkillExecution` captures results.
+A `Skill` is a pydantic data object that represents a tool the LLM can use. By default a set of `Skills` are registered in the skills modules. When a skill is executed an invocation object `SkillExecution` captures results.
+
+## Tests
+
+Unit tests should be written to confirm functionality. Tests are organized in the `tests` folder and tests using the `typer.testing.CliRunner` are in the `tests/cli` folder.
+
+Run a single test file:
+
+```bash
+bin/test tests/test_models_command.py
+```
+
+Run a single test by name:
+
+```bash
+bin/test tests/test_models_command.py::test_list_empty_no_ollama
+```
+
+Running tests with LLM support, which are normally skipped
+
+```bash
+bin/test --with-llm tests/
+```
+
+### Debugging
+
+Use the env variable `LOGGING_LEVEL` to set the Python logging level.
+
+Use the env variable `DEBUG=1` to turn on debugging mode.

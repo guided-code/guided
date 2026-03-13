@@ -21,11 +21,17 @@ class Skill(BaseModel):
     handler: Optional[Callable]
 
 
+class Preference(BaseModel):
+    key: str
+    value: Any
+
+
 class Configuration(BaseModel):
     version: str = Field(default="0.0.0")
     providers: Dict[str, Provider] = Field(default_factory=dict)
     models: Dict[str, Model] = Field(default_factory=dict)
     skills: Dict[str, Skill] = Field(default_factory=dict)
+    preferences: Dict[str, Preference] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_single_default(self) -> "Configuration":

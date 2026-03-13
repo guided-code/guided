@@ -7,14 +7,18 @@ from guided.chat.actions import (
     ActionContext,
     ActionRegistry,
     ExitAction,
+    GetPreferenceAction,
     HelpAction,
+    SetPreferenceAction,
+    UnsetPreferenceAction,
     get_actions_registry,
 )
+from guided.configure.schema import Configuration, Preference
 
 
-def make_ctx(registry=None) -> ActionContext:
+def make_ctx(registry=None, config=None) -> ActionContext:
     return ActionContext(
-        config=MagicMock(),
+        config=config or MagicMock(),
         messages=[],
         registry=registry or get_actions_registry(),
     )
@@ -53,6 +57,130 @@ def test_help_action_lists_actions(capsys):
     output = capsys.readouterr().out
     assert "/exit" in output
     assert "/help" in output
+
+
+# SetPreferenceAction
+
+
+def test_set_preference_action_name():
+    assert SetPreferenceAction().name == "set"
+
+
+def test_set_preference_returns_false(capsys):
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    result = SetPreferenceAction().execute(ctx, "theme dark")
+    assert result is False
+
+
+def test_set_preference_stores_preference():
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    SetPreferenceAction().execute(ctx, "theme dark")
+    assert config.preferences["theme"] == Preference(key="theme", value="dark")
+
+
+def test_set_preference_overwrites_existing():
+    config = Configuration(preferences={"theme": Preference(key="theme", value="light")})
+    ctx = make_ctx(config=config)
+    SetPreferenceAction().execute(ctx, "theme dark")
+    assert config.preferences["theme"].value == "dark"
+
+
+def test_set_preference_missing_args_prints_usage(capsys):
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    result = SetPreferenceAction().execute(ctx, "theme")
+    assert result is False
+    assert "Usage" in capsys.readouterr().out
+    assert "theme" not in config.preferences
+
+
+def test_set_preference_no_args_prints_usage(capsys):
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    result = SetPreferenceAction().execute(ctx, "")
+    assert result is False
+    assert "Usage" in capsys.readouterr().out
+
+
+def test_set_preference_value_with_spaces():
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    SetPreferenceAction().execute(ctx, "prompt you are a helpful assistant")
+    assert config.preferences["prompt"].value == "you are a helpful assistant"
+
+
+def test_set_preference_does_not_persist(capsys):
+    """Session-scoped: save_config should never be called."""
+    from unittest.mock import patch
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    with patch("guided.configure.config.save_config") as mock_save:
+        SetPreferenceAction().execute(ctx, "theme dark")
+    mock_save.assert_not_called()
+
+
+# GetPreferenceAction
+
+
+def test_get_preference_action_name():
+    assert GetPreferenceAction().name == "get"
+
+
+def test_get_preference_returns_value(capsys):
+    config = Configuration(preferences={"theme": Preference(key="theme", value="dark")})
+    ctx = make_ctx(config=config)
+    result = GetPreferenceAction().execute(ctx, "theme")
+    assert result is False
+    assert "dark" in capsys.readouterr().out
+
+
+def test_get_preference_missing_key_prints_error(capsys):
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    result = GetPreferenceAction().execute(ctx, "theme")
+    assert result is False
+    assert "not set" in capsys.readouterr().out
+
+
+def test_get_preference_no_args_prints_usage(capsys):
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    result = GetPreferenceAction().execute(ctx, "")
+    assert result is False
+    assert "Usage" in capsys.readouterr().out
+
+
+# UnsetPreferenceAction
+
+
+def test_unset_preference_action_name():
+    assert UnsetPreferenceAction().name == "unset"
+
+
+def test_unset_preference_removes_key():
+    config = Configuration(preferences={"theme": Preference(key="theme", value="dark")})
+    ctx = make_ctx(config=config)
+    result = UnsetPreferenceAction().execute(ctx, "theme")
+    assert result is False
+    assert "theme" not in config.preferences
+
+
+def test_unset_preference_missing_key_prints_error(capsys):
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    result = UnsetPreferenceAction().execute(ctx, "theme")
+    assert result is False
+    assert "not set" in capsys.readouterr().out
+
+
+def test_unset_preference_no_args_prints_usage(capsys):
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    result = UnsetPreferenceAction().execute(ctx, "")
+    assert result is False
+    assert "Usage" in capsys.readouterr().out
 
 
 # ActionRegistry.dispatch

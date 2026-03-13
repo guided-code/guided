@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 import rich
 
+from guided.configure.schema import Preference
+
 if TYPE_CHECKING:
     from guided.configure.schema import Configuration
 
@@ -83,6 +85,75 @@ class HelpAction(Action):
         return False
 
 
+class SetPreferenceAction(Action):
+    """Sets a preference for the current chat session."""
+
+    @property
+    def name(self) -> str:
+        return "set"
+
+    @property
+    def description(self) -> str:
+        return "Set a preference for this session: /set <key> <value>"
+
+    def execute(self, ctx: ActionContext, args: str = "") -> bool:
+        parts = args.split(maxsplit=1)
+        if len(parts) != 2:
+            rich.print("[red]Usage: /set <key> <value>[/red]")
+            return False
+        key, value = parts
+        ctx.config.preferences[key] = Preference(key=key, value=value)
+        rich.print(f"[green]Preference '{key}' set to '{value}' for this session.[/green]")
+        return False
+
+
+class GetPreferenceAction(Action):
+    """Gets a preference value for the current chat session."""
+
+    @property
+    def name(self) -> str:
+        return "get"
+
+    @property
+    def description(self) -> str:
+        return "Get a preference value: /get <key>"
+
+    def execute(self, ctx: ActionContext, args: str = "") -> bool:
+        key = args.strip()
+        if not key:
+            rich.print("[red]Usage: /get <key>[/red]")
+            return False
+        if key not in ctx.config.preferences:
+            rich.print(f"[red]Preference '{key}' not set.[/red]")
+            return False
+        rich.print(ctx.config.preferences[key].value)
+        return False
+
+
+class UnsetPreferenceAction(Action):
+    """Unsets a preference for the current chat session."""
+
+    @property
+    def name(self) -> str:
+        return "unset"
+
+    @property
+    def description(self) -> str:
+        return "Unset a preference for this session: /unset <key>"
+
+    def execute(self, ctx: ActionContext, args: str = "") -> bool:
+        key = args.strip()
+        if not key:
+            rich.print("[red]Usage: /unset <key>[/red]")
+            return False
+        if key not in ctx.config.preferences:
+            rich.print(f"[red]Preference '{key}' not set.[/red]")
+            return False
+        del ctx.config.preferences[key]
+        rich.print(f"[green]Preference '{key}' unset for this session.[/green]")
+        return False
+
+
 class ActionRegistry:
     """Registry for actions."""
 
@@ -127,7 +198,7 @@ class ActionRegistry:
 def get_actions_registry() -> ActionRegistry:
     registry = ActionRegistry()
 
-    default_actions = [ExitAction(), HelpAction()]
+    default_actions = [ExitAction(), HelpAction(), SetPreferenceAction(), GetPreferenceAction(), UnsetPreferenceAction()]
     for action in default_actions:
         registry.register(action)
 
