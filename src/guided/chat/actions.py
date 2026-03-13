@@ -6,6 +6,7 @@ import rich
 from pydantic import BaseModel, ConfigDict
 
 from guided.configure.schema import Configuration, Preference
+from guided.configure.config import load_agents_md
 
 
 class ActionContext(BaseModel):
@@ -97,6 +98,9 @@ class ClearAction(Action):
 
     def execute(self, ctx: ActionContext, args: str = "") -> bool:
         ctx.messages.clear()
+        agents_content = load_agents_md()
+        if agents_content:
+            ctx.messages.append(agents_content)
         rich.print("[green]Chat messages cleared.[/green]")
         return False
 

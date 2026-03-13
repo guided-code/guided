@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 
 import yaml
 
@@ -54,3 +55,32 @@ def save_config(config: Configuration) -> None:
 
     with config_path.open("w") as f:
         yaml.dump(config.model_dump(), f, default_flow_style=False)
+
+
+def load_agents_md() -> Optional[str]:
+    """Load AGENTS.md from current directory or workspace, if it exists.
+
+    Checks in order:
+    1. Current directory's AGENTS.md
+    2. .workspace/AGENTS.md (in workspace root)
+    3. .workspace/context/AGENTS.md (in workspace context folder)
+    """
+    # Check current directory first
+    current_agents = Path("AGENTS.md")
+    if current_agents.exists():
+        return current_agents.read_text().strip()
+
+    # Check workspace locations
+    workspace = Path(".workspace")
+    if workspace.is_dir():
+        # Check workspace root
+        workspace_agents = workspace / "AGENTS.md"
+        if workspace_agents.exists():
+            return workspace_agents.read_text().strip()
+
+        # Check workspace context folder
+        context_agents = workspace / "context" / "AGENTS.md"
+        if context_agents.exists():
+            return context_agents.read_text().strip()
+
+    return None
