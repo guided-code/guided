@@ -16,31 +16,17 @@ ensure_uv() {
   fi
 }
 
-# Checkout or update git repository
-download() {
-  if [ -d "$install_location" ]; then
-    echo "[.]Updating Guided at $install_location..."
-    git -C "$install_location" pull
-  else
-    echo "[.]Downloading Guided..."
-    git clone $repo_location $install_location
-  fi
-}
-
-# Add
-install() {
-  echo "[.]Installing Guided..."
+uninstall() {
+  echo "[.]Uninstalling Guided..."
   cd $install_location
-  uv tool install --editable .
+  uv tool uninstall guided
 }
 
 # Show instructions
 show_instructions() {
   echo ""
   echo "[.]Instructions..."
-  echo "Guided has been installed to $install_location"
-  echo ""
-  echo "You can now use guide commands."
+  echo "You can safely remove $install_location"
 }
 
 # Prep
@@ -50,6 +36,5 @@ trap cleanup SIGINT EXIT
 
 # Start
 ensure_uv
-download
-install
+uninstall
 show_instructions

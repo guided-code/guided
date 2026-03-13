@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 
 import guided
-from guided.configure.schema import Configuration, Provider, Skill
+from guided.configure.schema import Configuration, Provider
 
 DEFAULT_GUIDED_HOME_PATH = Path.home() / ".guided"
 CONFIG_FILE_NAME = "config.yaml"
