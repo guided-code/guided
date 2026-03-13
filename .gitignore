@@ -23,3 +23,6 @@ dist/
 # Deepeval
 .deepeval
 
+# mkdocs
+site/
+
