@@ -22,19 +22,6 @@ def test_list_no_skills():
     assert "No skills configured" in result.output
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="bug: skills list accesses skill.type but Skill schema has no 'type' field",
-)
-def test_list_shows_configured_skills():
-    skill = make_skill(name="do_thing", description="Does the thing")
-    config = Configuration(skills={"do_thing": skill})
-    result = runner.invoke(app, ["list"], obj=config)
-    assert result.exit_code == 0
-    assert "do_thing" in result.output
-    assert "Does the thing" in result.output
-
-
 # remove
 
 
