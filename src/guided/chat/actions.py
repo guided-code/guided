@@ -5,8 +5,8 @@ from abc import ABC, abstractmethod
 import rich
 from pydantic import BaseModel, ConfigDict
 
-from guided.configure.schema import Configuration, Preference
 from guided.configure.config import load_agents_md
+from guided.configure.schema import Configuration, Preference
 
 
 class ActionContext(BaseModel):
@@ -248,13 +248,13 @@ def get_actions_registry() -> ActionRegistry:
     registry = ActionRegistry()
 
     default_actions = [
-        ExitAction(),
-        HelpAction(),
         ClearAction(),
+        GetPreferenceAction(),
         HistoryAction(),
         SetPreferenceAction(),
-        GetPreferenceAction(),
         UnsetPreferenceAction(),
+        ExitAction(),
+        HelpAction(),
     ]
     for action in default_actions:
         registry.register(action)

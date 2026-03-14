@@ -1,28 +1,27 @@
 import logging
 import sys
-from typing import Optional, Self, List
+from typing import List, Optional, Self
 
 import ollama
-from prompt_toolkit import HTML
-from pygments.lexers.html import HtmlLexer
-from pygments.styles import get_style_by_name
-from prompt_toolkit import PromptSession
-from prompt_toolkit.history import InMemoryHistory
-from prompt_toolkit.lexers import PygmentsLexer
-from prompt_toolkit.styles.pygments import style_from_pygments_cls
-from prompt_toolkit.shortcuts import confirm
 import rich
 import typer
+from prompt_toolkit import HTML, PromptSession
+from prompt_toolkit.history import InMemoryHistory
+from prompt_toolkit.lexers import PygmentsLexer
+from prompt_toolkit.shortcuts import confirm
+from prompt_toolkit.styles.pygments import style_from_pygments_cls
+from pygments.lexers.html import HtmlLexer
+from pygments.styles import get_style_by_name
 from rich.console import Console
 
 from guided import get_version
 from guided.chat.actions import ActionContext, get_actions_registry
+from guided.configure.config import load_agents_md
 from guided.configure.schema import Configuration, Skill
 from guided.environment import is_debug
 from guided.skills.container import read_file
 from guided.skills.executor import execute_skill
 from guided.skills.web_search import search_web_text
-from guided.configure.config import load_agents_md
 
 DEFAULT_TOOLS = [read_file, search_web_text]
 
@@ -155,10 +154,10 @@ class ChatSession:
         else:
             rich.print("[bold][Guided][/bold]")
             rich.print("Version: ", get_version())
-            rich.print("")
             rich.print(
                 f"[bold]Chatting with[/bold] [cyan]{self.model}[/cyan] via [cyan]{self.provider.name}[/cyan]"
             )
+            rich.print("")
             rich.print("Type your message and press Enter. Press Ctrl+C to exit.")
             rich.print("Type [cyan]/help[/cyan] for available actions.\n")
 
