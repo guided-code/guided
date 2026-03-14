@@ -1,5 +1,3 @@
-
-
 import pytest
 
 from guided.chat.actions import (
@@ -9,6 +7,7 @@ from guided.chat.actions import (
     ExitAction,
     GetPreferenceAction,
     HelpAction,
+    InitAction,
     SetPreferenceAction,
     UnsetPreferenceAction,
     get_actions_registry,
@@ -81,7 +80,9 @@ def test_set_preference_stores_preference():
 
 
 def test_set_preference_overwrites_existing():
-    config = Configuration(preferences={"theme": Preference(key="theme", value="light")})
+    config = Configuration(
+        preferences={"theme": Preference(key="theme", value="light")}
+    )
     ctx = make_ctx(config=config)
     SetPreferenceAction().execute(ctx, "theme dark")
     assert config.preferences["theme"].value == "dark"
@@ -114,6 +115,7 @@ def test_set_preference_value_with_spaces():
 def test_set_preference_does_not_persist(capsys):
     """Session-scoped: save_config should never be called."""
     from unittest.mock import patch
+
     config = Configuration()
     ctx = make_ctx(config=config)
     with patch("guided.configure.config.save_config") as mock_save:
@@ -181,6 +183,122 @@ def test_unset_preference_no_args_prints_usage(capsys):
     result = UnsetPreferenceAction().execute(ctx, "")
     assert result is False
     assert "Usage" in capsys.readouterr().out
+
+
+# InitAction
+
+
+def test_init_action_name():
+    assert InitAction().name == "init"
+
+
+def test_init_action_returns_false(capsys):
+    ctx = make_ctx()
+    result = InitAction().execute(ctx)
+    assert result is False
+    assert "Workspace initialized" in capsys.readouterr().out
+
+
+def test_init_action_describes_initialization(capsys, tmp_path, monkeypatch):
+    """Test that init action creates workspace with correct structure."""
+    monkeypatch.chdir(tmp_path)
+    ctx = make_ctx()
+    result = InitAction().execute(ctx)
+    assert result is False
+    output = capsys.readouterr().out
+
+    assert "Workspace initialized" in output
+    assert "name:" in output
+    assert "folders:" in output
+
+    workspace = tmp_path / ".workspace"
+    assert workspace.exists()
+    assert (workspace / "config.yaml").exists()
+    assert (workspace / "decisions").exists()
+    assert (workspace / "transcripts").exists()
+    assert (workspace / "context").exists()
+
+
+def test_get_preference_action_name():
+    assert GetPreferenceAction().name == "get"
+
+
+def test_get_preference_returns_value(capsys):
+    config = Configuration(preferences={"theme": Preference(key="theme", value="dark")})
+    ctx = make_ctx(config=config)
+    result = GetPreferenceAction().execute(ctx, "theme")
+    assert result is False
+    assert "dark" in capsys.readouterr().out
+
+
+def test_get_preference_missing_key_prints_error(capsys):
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    result = GetPreferenceAction().execute(ctx, "theme")
+    assert result is False
+    assert "not set" in capsys.readouterr().out
+
+
+def test_get_preference_no_args_prints_usage(capsys):
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    result = GetPreferenceAction().execute(ctx, "")
+    assert result is False
+    assert "Usage" in capsys.readouterr().out
+
+
+# UnsetPreferenceAction
+
+
+def test_unset_preference_action_name():
+    assert UnsetPreferenceAction().name == "unset"
+
+
+def test_unset_preference_removes_key():
+    config = Configuration(preferences={"theme": Preference(key="theme", value="dark")})
+    ctx = make_ctx(config=config)
+    result = UnsetPreferenceAction().execute(ctx, "theme")
+    assert result is False
+    assert "theme" not in config.preferences
+
+
+def test_unset_preference_missing_key_prints_error(capsys):
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    result = UnsetPreferenceAction().execute(ctx, "theme")
+    assert result is False
+    assert "not set" in capsys.readouterr().out
+
+
+def test_unset_preference_no_args_prints_usage(capsys):
+    config = Configuration()
+    ctx = make_ctx(config=config)
+    result = UnsetPreferenceAction().execute(ctx, "")
+    assert result is False
+    assert "Usage" in capsys.readouterr().out
+
+
+# InitAction integration test
+
+
+def test_init_action_creates_workspace(capsys, tmp_path, monkeypatch):
+    """Test that init action creates workspace with correct structure."""
+    monkeypatch.chdir(tmp_path)
+    ctx = make_ctx()
+    result = InitAction().execute(ctx)
+    assert result is False
+    output = capsys.readouterr().out
+
+    assert "Workspace initialized" in output
+    assert "name:" in output
+    assert "folders:" in output
+
+    workspace = tmp_path / ".workspace"
+    assert workspace.exists()
+    assert (workspace / "config.yaml").exists()
+    assert (workspace / "decisions").exists()
+    assert (workspace / "transcripts").exists()
+    assert (workspace / "context").exists()
 
 
 # ActionRegistry.dispatch
@@ -276,7 +394,40 @@ def test_dispatch_question_mark_alias():
 # get_all_action_names
 
 
-def test_get_all_action_names_returns_main_names_only():
+# InitAction
+
+
+def test_init_action_name():
+    assert InitAction().name == "init"
+
+
+def test_init_action_returns_false():
+    ctx = make_ctx()
+    result = InitAction().execute(ctx)
+    assert result is False
+
+
+def test_init_action_describes_initialization():
+    ctx = make_ctx()
+    result = InitAction().execute(ctx)
+    assert result is False
+
+
+# test_dispatch_init
+
+
+def test_dispatch_init():
+    registry = get_actions_registry()
+    ctx = make_ctx(registry)
+    assert registry.dispatch("/init", ctx) is False
+
+
+def test_get_all_action_names_returns_init():
+    registry = get_actions_registry()
+    names = registry.get_all_action_names()
+    assert "init" in names
+
+    # test_get_all_action_names_returns_main_names_only():
     registry = get_actions_registry()
     names = registry.get_all_action_names()
     assert "exit" in names

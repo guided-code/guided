@@ -31,17 +31,7 @@ def save_workspace_config(workspace: Path, config: WorkspaceConfig) -> None:
         yaml.dump(config.model_dump(), f, default_flow_style=False)
 
 
-@app.command()
-def init(
-    path: Optional[Path] = typer.Argument(
-        default=None,
-        help="Directory to initialize as a workspace (default: current directory)",
-    ),
-    name: Optional[str] = typer.Option(
-        None, "--name", "-n", help="Workspace name (default: directory name)"
-    ),
-):
-    """Initialize a workspace in a local folder."""
+def initialize_workspace(path: Optional[Path] = None, name: Optional[str] = None):
     target = (path or Path.cwd()).resolve()
 
     if not target.is_dir():
@@ -52,7 +42,7 @@ def init(
 
     if workspace.exists():
         rich.print(f"[yellow]Workspace already exists:[/yellow] {workspace}")
-        raise typer.Exit(1)
+        return True
 
     workspace_name = name or target.name
     config = WorkspaceConfig(name=workspace_name)
@@ -67,6 +57,23 @@ def init(
     rich.print(f"  [dim]name:[/dim]      {config.name}")
     rich.print(f"  [dim]created:[/dim]   {config.created_at}")
     rich.print(f"  [dim]folders:[/dim]   {', '.join(SUBDIRS)}")
+    return True
+
+
+@app.command()
+def init(
+    path: Optional[Path] = typer.Argument(
+        default=None,
+        help="Directory to initialize as a workspace (default: current directory)",
+    ),
+    name: Optional[str] = typer.Option(
+        None, "--name", "-n", help="Workspace name (default: directory name)"
+    ),
+):
+    """Initialize a workspace in a local folder."""
+    success = initialize_workspace(path, name)
+    if not success:
+        raise typer.Exit(1)
 
 
 @app.command()

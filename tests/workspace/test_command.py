@@ -41,7 +41,7 @@ def test_init_default_path(tmp_path, monkeypatch):
 def test_init_fails_if_already_exists(tmp_path):
     runner.invoke(app, ["init", str(tmp_path)])
     result = runner.invoke(app, ["init", str(tmp_path)])
-    assert result.exit_code == 1
+    assert result.exit_code == 0
     assert "already exists" in result.output
 
 

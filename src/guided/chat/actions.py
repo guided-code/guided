@@ -125,7 +125,7 @@ class HistoryAction(Action):
         for i, msg in enumerate(ctx.messages, start=1):
             role = msg.get("role", "unknown")
             content = msg.get("content", "")
-            rich.print(f"\n[dim]--- Message {i} ({role.capitalize()}) ---[/dim]")
+            rich.print(f"\n[bold]--- Message {i} ({role.capitalize()}) ---[/bold]")
             rich.print(f"[cyan]{content}[/cyan]")
             rich.print("[dim]---[/dim]")
         rich.print()
@@ -203,6 +203,24 @@ class UnsetPreferenceAction(Action):
         return False
 
 
+class InitAction(Action):
+    """Initializes a workspace in the current directory."""
+
+    @property
+    def name(self) -> str:
+        return "init"
+
+    @property
+    def description(self) -> str:
+        return "Initialize a workspace in the current directory"
+
+    def execute(self, ctx: ActionContext, args: str = "") -> bool:
+        from guided.workspace.command import initialize_workspace
+
+        initialize_workspace()
+        return False
+
+
 class ActionRegistry:
     """Registry for actions."""
 
@@ -248,12 +266,13 @@ def get_actions_registry() -> ActionRegistry:
     registry = ActionRegistry()
 
     default_actions = [
+        InitAction(),
         ClearAction(),
+        ExitAction(),
         GetPreferenceAction(),
         HistoryAction(),
         SetPreferenceAction(),
         UnsetPreferenceAction(),
-        ExitAction(),
         HelpAction(),
     ]
     for action in default_actions:
