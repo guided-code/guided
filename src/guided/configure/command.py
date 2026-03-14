@@ -22,6 +22,7 @@ def setup_configuration(config: Configuration, overwrite_with_default: bool = Fa
             if response.models:
                 # Get the first available model
                 first_model = response.models[0].model
+                assert isinstance(first_model, str)
 
                 # Check if there are no default models currently
                 has_default = any(m.is_default for m in config.models.values())
