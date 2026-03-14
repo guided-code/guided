@@ -28,6 +28,8 @@ class ChatSession:
         messages: Optional[list] = None,
         is_logging: bool = False,
         is_interactive: bool = False,
+        use_thinking: bool = True,
+        use_tools: bool = True,
     ):
         self.config = config
         self.model: Optional[str] = None
@@ -35,6 +37,8 @@ class ChatSession:
         self.messages = messages if messages is not None else []
         self.is_logging = is_logging
         self.is_interactive = is_interactive
+        self.use_thinking = use_thinking
+        self.use_tools = use_tools
         self.registry = get_actions_registry()
         self._console = Console()
         self._tools = []
@@ -103,7 +107,7 @@ class ChatSession:
 
         return self
 
-    def run(self, text: Optional[str] = None, disable_tools: bool = False):
+    def run(self, text: Optional[str] = None):
         """Start the interactive chat loop or process a single message."""
         if self.model is None or self.provider is None:
             raise RuntimeError(
@@ -115,10 +119,8 @@ class ChatSession:
         # Send once
         if not self.is_interactive:
             self.messages.append({"role": "user", "content": text})
-            while tool_calls := self._send(client, disable_tools=disable_tools):
-                self._execute_tool_calls(
-                    client, tool_calls, disable_tools=disable_tools
-                )
+            while tool_calls := self._send(client):
+                self._execute_tool_calls(client, tool_calls)
 
         # Interactive loop
         else:
@@ -161,16 +163,14 @@ class ChatSession:
 
                 # Process response
                 self.messages.append({"role": "user", "content": user_input})
-                while tool_calls := self._send(client, disable_tools=disable_tools):
-                    self._execute_tool_calls(
-                        client, tool_calls, disable_tools=disable_tools
-                    )
+                while tool_calls := self._send(client):
+                    self._execute_tool_calls(client, tool_calls)
 
-    def _execute_tool_calls(
-        self, client, tool_calls: List, disable_tools: bool = False
-    ) -> Optional[object]:
+    def _execute_tool_calls(self, client, tool_calls: List) -> Optional[object]:
         """If msg has tool calls, execute them and re-query until a plain response arrives."""
-        if not tool_calls:
+        empty_tool_calls = not tool_calls
+        disabled_tools = not self.use_tools
+        if empty_tool_calls or disabled_tools:
             return
 
         # Display tool calls
@@ -200,12 +200,13 @@ class ChatSession:
             # Append results
             self.messages.append({"role": "tool", "content": result})
 
-    def _send(self, client, disable_tools: bool = False):
+    def _send(self, client):
         """Send the current message history, executing any tool calls, and print the reply.
 
         Returns:
             List of tool calls if the message contains tool calls, empty list otherwise.
         """
+        disabled_tools = not self.use_tools
         try:
             status = None
             if self.is_logging:
@@ -217,7 +218,7 @@ class ChatSession:
             stream = client.chat(
                 model=self.model,
                 messages=self.messages,
-                tools=[] if disable_tools else (self._tools or None),
+                tools=[] if disabled_tools else (self._tools or None),
                 stream=True,
                 think=True,
             )
@@ -233,7 +234,7 @@ class ChatSession:
                 message = chunk.message
 
                 # Tool call
-                if not disable_tools and message.tool_calls:
+                if not disabled_tools and message.tool_calls:
                     if self.is_logging:
                         self._console.out("")
                     return message.tool_calls
@@ -293,6 +294,8 @@ class ChatSession:
 def run_chat(
     config: Configuration,
     model: Optional[str] = None,
+    use_thinking: bool = True,
+    use_tools: bool = True,
 ):
     is_interactive = sys.stdin.isatty()
     messages = []
@@ -310,6 +313,8 @@ def run_chat(
             messages=messages,
             is_logging=is_interactive or is_debug(),
             is_interactive=is_interactive,
+            use_thinking=use_thinking,
+            use_tools=use_tools,
         )
         .resolve_model(model)
         .resolve_provider()
