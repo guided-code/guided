@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -eu
+
+cwd="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
+
+cleanup() {
+  cd $cwd > /dev/null
+}
+
+ensure_docker() {
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "[.]Error: docker is not installed. Please install docker first."
+    exit 1
+  fi
+}
+
+run_task() {
+  echo "[.]Running task..."
+  docker run --platform linux/amd64 -it guided:latest /bin/bash
+}
+
+# Prep
+trap cleanup SIGINT EXIT
+
+# Start
+ensure_docker
+run_task

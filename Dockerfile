@@ -6,6 +6,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /usr/src/guided
 
+COPY --from=docker.io/astral/uv:latest /uv /usr/local/bin/uv
+
 COPY . .
 
-RUN pip install uv
+RUN /usr/local/bin/uv sync
