@@ -6,9 +6,11 @@ import ollama
 from prompt_toolkit import HTML
 from pygments.lexers.html import HtmlLexer
 from pygments.styles import get_style_by_name
-from prompt_toolkit.shortcuts import prompt
+from prompt_toolkit import PromptSession
+from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.styles.pygments import style_from_pygments_cls
+from prompt_toolkit.shortcuts import confirm
 import rich
 import typer
 from rich.console import Console
@@ -49,6 +51,8 @@ class ChatSession:
         self._console = Console()
         self._tools = []
         self._skills_by_name = {}
+        self._prompt_sesion = None
+        self._prompt_history = None
 
     def resolve_model(self, model: Optional[str] = None) -> Self:
         """Set model or fallback to default model configuration"""
@@ -113,6 +117,25 @@ class ChatSession:
 
         return self
 
+    def get_prompt_session(self) -> PromptSession:
+        """Get the prompt session for the chat"""
+        if self._prompt_sesion is None:
+            self._prompt_history = InMemoryHistory()
+            self._prompt_sesion = PromptSession(history=self._prompt_history)
+        return self._prompt_sesion
+
+    def prompt_user(self) -> str:
+        style = style_from_pygments_cls(get_style_by_name("monokai"))
+        return self.get_prompt_session().prompt(
+            HTML("<seagreen>[You]: </seagreen>"),
+            lexer=PygmentsLexer(HtmlLexer),
+            style=style,
+            include_default_pygments_style=False,
+        )
+
+    def confirm_user(self) -> str:
+        return confirm(message="Confirm tool use? ", suffix="(y/[n]) ")
+
     def run(self, text: Optional[str] = None):
         """Start the interactive chat loop or process a single message."""
         if self.model is None or self.provider is None:
@@ -142,13 +165,8 @@ class ChatSession:
             while True:
                 # User input prompt
                 try:
-                    style = style_from_pygments_cls(get_style_by_name("monokai"))
-                    user_input = prompt(
-                        HTML("<seagreen>[You]: </seagreen>"),
-                        lexer=PygmentsLexer(HtmlLexer),
-                        style=style,
-                        include_default_pygments_style=False,
-                    )
+                    user_input = self.prompt_user()
+
                 except (typer.Abort, KeyboardInterrupt, EOFError):
                     rich.print("\n[dim]Goodbye.[/dim]")
                     break
@@ -205,8 +223,11 @@ class ChatSession:
 
             # Execute tool
             else:
-                exec = execute_skill(skill, **dict(handler.arguments))
-                result = exec.result
+                if self.confirm_user():
+                    exec = execute_skill(skill, **dict(handler.arguments))
+                    result = exec.result
+                else:
+                    result = f"Tool ['{handler.name}'] use cancelled by user."
 
             # Append results
             self.messages.append({"role": "tool", "content": result})
