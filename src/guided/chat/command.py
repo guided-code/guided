@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Optional, Self
+from typing import Optional, Self, List
 
 import ollama
 import rich
@@ -28,6 +28,8 @@ class ChatSession:
         messages: Optional[list] = None,
         is_logging: bool = False,
         is_interactive: bool = False,
+        use_thinking: bool = True,
+        use_tools: bool = True,
     ):
         self.config = config
         self.model: Optional[str] = None
@@ -35,6 +37,8 @@ class ChatSession:
         self.messages = messages if messages is not None else []
         self.is_logging = is_logging
         self.is_interactive = is_interactive
+        self.use_thinking = use_thinking
+        self.use_tools = use_tools
         self.registry = get_actions_registry()
         self._console = Console()
         self._tools = []
@@ -103,7 +107,7 @@ class ChatSession:
 
         return self
 
-    def run(self, text: Optional[str] = None, disable_tools: bool = False):
+    def run(self, text: Optional[str] = None):
         """Start the interactive chat loop or process a single message."""
         if self.model is None or self.provider is None:
             raise RuntimeError(
@@ -115,7 +119,8 @@ class ChatSession:
         # Send once
         if not self.is_interactive:
             self.messages.append({"role": "user", "content": text})
-            self._send(client, disable_tools=disable_tools)
+            while tool_calls := self._send(client):
+                self._execute_tool_calls(client, tool_calls)
 
         # Interactive loop
         else:
@@ -158,91 +163,120 @@ class ChatSession:
 
                 # Process response
                 self.messages.append({"role": "user", "content": user_input})
-                self._send(client, disable_tools=disable_tools)
+                while tool_calls := self._send(client):
+                    self._execute_tool_calls(client, tool_calls)
 
-    def _execute_tool_calls(
-        self, client, msg, disable_tools: bool = False
-    ) -> Optional[object]:
-        """If msg has tool calls, execute them and re-query until a plain response arrives.
+    def _execute_tool_calls(self, client, tool_calls: List) -> Optional[object]:
+        """If msg has tool calls, execute them and re-query until a plain response arrives."""
+        empty_tool_calls = not tool_calls
+        disabled_tools = not self.use_tools
+        if empty_tool_calls or disabled_tools:
+            return
 
-        Returns the final message with no tool calls, or None if the initial msg had none.
+        # Display tool calls
+        if self.is_logging:
+            for tool_call in tool_calls:
+                rich.print(
+                    f"[dim]  → {tool_call.function.name}({dict(tool_call.function.arguments)})[/dim]"
+                )
+
+        # Call all tools
+        for tool_call in tool_calls:
+            # Requested tool
+            handler = tool_call.function
+
+            # Find tool call
+            skill = self._skills_by_name.get(handler.name)
+
+            # Unrecognized tool
+            if skill is None:
+                result = f"Error: unknown skill '{handler.name}'"
+
+            # Execute tool
+            else:
+                exec = execute_skill(skill, **dict(handler.arguments))
+                result = exec.result
+
+            # Append results
+            self.messages.append({"role": "tool", "content": result})
+
+    def _send(self, client):
+        """Send the current message history, executing any tool calls, and print the reply.
+
+        Returns:
+            List of tool calls if the message contains tool calls, empty list otherwise.
         """
-        if not msg.tool_calls:
-            return None
-
-        while msg.tool_calls:
-            if self.is_logging:
-                for tool_call in msg.tool_calls:
-                    rich.print(
-                        f"[dim]  → {tool_call.function.name}({dict(tool_call.function.arguments)})[/dim]"
-                    )
-
-            for tool_call in msg.tool_calls:
-                fn = tool_call.function
-                skill = self._skills_by_name.get(fn.name)
-                if skill is None:
-                    result = f"Error: unknown tool '{fn.name}'"
-                else:
-                    exec = execute_skill(skill, **dict(fn.arguments))
-                    result = exec.result
-                self.messages.append({"role": "tool", "content": result})
-
-            if self.is_logging:
-                with self._console.status("[bold magenta]Thinking...", spinner="dots"):
-                    response = client.chat(
-                        model=self.model,
-                        messages=self.messages,
-                        tools=[] if disable_tools else (self._tools or None),
-                    )
-            else:
-                response = client.chat(
-                    model=self.model,
-                    messages=self.messages,
-                    tools=[] if disable_tools else (self._tools or None),
-                )
-
-            msg = response.message
-            self.messages.append(msg)
-
-        return msg
-
-    def _send(self, client, disable_tools: bool = False):
-        """Send the current message history, executing any tool calls, and print the reply."""
+        disabled_tools = not self.use_tools
         try:
+            status = None
             if self.is_logging:
-                with self._console.status("[bold magenta]Thinking...", spinner="dots"):
-                    response = client.chat(
-                        model=self.model,
-                        messages=self.messages,
-                        tools=[] if disable_tools else (self._tools or None),
-                    )
-            else:
-                response = client.chat(
-                    model=self.model,
-                    messages=self.messages,
-                    tools=[] if disable_tools else (self._tools or None),
+                status = self._console.status(
+                    "[bold magenta]Processing...", spinner="dots"
                 )
+                status.start()
 
-            msg = response.message
-            self.messages.append(msg)
+            stream = client.chat(
+                model=self.model,
+                messages=self.messages,
+                tools=[] if disabled_tools else (self._tools or None),
+                stream=True,
+                think=True,
+            )
 
-            # Tool call
-            if not disable_tools and msg.tool_calls:
-                msg = self._execute_tool_calls(client, msg, disable_tools=disable_tools)
+            if status is not None:
+                status.stop()
 
-            # Allow completion
-            if msg is None:
-                return
+            # Stream response
+            in_thinking = False
+            thinking = ""
+            content = ""
+            for chunk in stream:
+                message = chunk.message
 
-            # Response
+                # Tool call
+                if not disabled_tools and message.tool_calls:
+                    if self.is_logging:
+                        self._console.out("")
+                    return message.tool_calls
+
+                # Started thinking
+                if message.thinking and not in_thinking:
+                    in_thinking = True
+                    if self.is_logging:
+                        self._console.out(
+                            "\n[Assistant (Thinking)]: ", style="dim magenta", end=""
+                        )
+                    else:
+                        self._console.out("<think>")
+
+                # Not thinking
+                if not message.thinking:
+                    # Stopped thinking
+                    if in_thinking:
+                        if self.is_logging:
+                            self._console.out(
+                                "\n\n[Assistant]: ", style="dim magenta", end=""
+                            )
+                        else:
+                            self._console.out("\n</think>")
+                    in_thinking = False
+
+                # Echo thinking
+                if in_thinking:
+                    thinking += message.thinking
+                    self._console.out(message.thinking, style="dim", end="")
+
+                # Echo content
+                else:
+                    content += message.content
+                    self._console.out(message.content, end="")
+
+            # Collect complete thoughts and message
+            self.messages.append(
+                {"role": "assistant", "thinking": thinking, "content": content}
+            )
             if self.is_logging:
-                self._console.out("\n[Assistant]: ", style="dim", end="")
-                if msg.content:
-                    self._console.out(msg.content, end="")
-                self._console.out("\n")
-            else:
-                if msg.content:
-                    sys.stdout.write(msg.content)
+                self._console.out("")
 
         except Exception as e:
             # Print stacktrace
@@ -254,10 +288,14 @@ class ChatSession:
                 sys.stderr.write(f"Error: {e}\n")
             raise typer.Exit(1)
 
+        return []
+
 
 def run_chat(
     config: Configuration,
     model: Optional[str] = None,
+    use_thinking: bool = True,
+    use_tools: bool = True,
 ):
     is_interactive = sys.stdin.isatty()
     messages = []
@@ -275,6 +313,8 @@ def run_chat(
             messages=messages,
             is_logging=is_interactive or is_debug(),
             is_interactive=is_interactive,
+            use_thinking=use_thinking,
+            use_tools=use_tools,
         )
         .resolve_model(model)
         .resolve_provider()

@@ -50,9 +50,13 @@ def configure(
 def chat(
     ctx: typer.Context,
     model: Optional[str] = typer.Argument(default=None, help="Model name to chat with"),
+    use_thinking: bool = typer.Option(
+        True, "--use-thinking", help="Use thinking to respond"
+    ),
+    use_tools: bool = typer.Option(True, "--use-tools", help="Use tools to respond"),
 ):
     """Chat interactively with a model, or pipe text via stdin for a single response."""
-    run_chat(ctx.obj, model=model)
+    run_chat(ctx.obj, model=model, use_thinking=use_thinking, use_tools=use_tools)
 
 
 app.add_typer(models_app, name="models")
