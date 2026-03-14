@@ -21,7 +21,7 @@ run_task() {
 }
 
 # Prep
-trap cleanup SIGINT EXIT
+trap cleanup INT EXIT
 
 # Start
 ensure_uv
