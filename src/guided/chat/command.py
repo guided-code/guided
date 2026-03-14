@@ -223,7 +223,9 @@ class ChatSession:
 
             # Execute tool
             else:
-                if self.confirm_user():
+                if not self.is_interactive:
+                    result = f"Tool ['{handler.name}'] use not confirmed in non-interactive mode."
+                elif self.confirm_user():
                     exec = execute_skill(skill, **dict(handler.arguments))
                     result = exec.result
                 else:
