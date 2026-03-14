@@ -56,7 +56,8 @@ def _mock_response(content: str) -> MagicMock:
     response = MagicMock()
     response.message.content = content
     response.message.tool_calls = None
-    return response
+    response.message.thinking = False
+    return [response]
 
 
 # No model specified, no default configured
