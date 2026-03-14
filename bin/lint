@@ -1,15 +1,15 @@
 #!/bin/sh
 
-set -euo pipefail
+set -eu
 
-cwd="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cwd="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 
 cleanup() {
   cd $cwd > /dev/null
 }
 
 ensure_uv() {
-  if [ ! command -v uv &> /dev/null ]; then
+  if ! command -v uv >/dev/null 2>&1; then
     echo "[.]Error: uv is not installed. Please install uv first."
     exit 1
   fi

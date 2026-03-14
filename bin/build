@@ -1,15 +1,15 @@
 #!/bin/sh
 
-set -euo pipefail
+set -eu
 
-cwd="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cwd="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 
 cleanup() {
   cd $cwd > /dev/null
 }
 
 ensure_docker() {
-  if [ ! command -v docker &> /dev/null ]; then
+  if ! command -v docker >/dev/null 2>&1; then
     echo "[.]Error: docker is not installed. Please install docker first."
     exit 1
   fi
