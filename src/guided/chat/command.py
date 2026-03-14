@@ -3,6 +3,12 @@ import sys
 from typing import Optional, Self, List
 
 import ollama
+from prompt_toolkit import HTML
+from pygments.lexers.html import HtmlLexer
+from pygments.styles import get_style_by_name
+from prompt_toolkit.shortcuts import prompt
+from prompt_toolkit.lexers import PygmentsLexer
+from prompt_toolkit.styles.pygments import style_from_pygments_cls
 import rich
 import typer
 from rich.console import Console
@@ -136,8 +142,13 @@ class ChatSession:
             while True:
                 # User input prompt
                 try:
-                    self._console.out("\n[You]:", style="dim", end="")
-                    user_input = typer.prompt("", prompt_suffix=" ")
+                    style = style_from_pygments_cls(get_style_by_name("monokai"))
+                    user_input = prompt(
+                        HTML("<seagreen>[You]: </seagreen>"),
+                        lexer=PygmentsLexer(HtmlLexer),
+                        style=style,
+                        include_default_pygments_style=False,
+                    )
                 except (typer.Abort, KeyboardInterrupt, EOFError):
                     rich.print("\n[dim]Goodbye.[/dim]")
                     break
@@ -276,7 +287,7 @@ class ChatSession:
                 {"role": "assistant", "thinking": thinking, "content": content}
             )
             if self.is_logging:
-                self._console.out("")
+                self._console.out("\n")
 
         except Exception as e:
             # Print stacktrace
