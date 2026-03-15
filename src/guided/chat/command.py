@@ -209,7 +209,7 @@ class ChatSession:
 
                             rich.print(output)
                         except Exception as e:
-                            if 'status' in locals() and status is not None:
+                            if "status" in locals() and status is not None:
                                 status.stop()
                             rich.print(f"[red]Error executing command: {e}[/red]")
                     continue
@@ -340,6 +340,15 @@ class ChatSession:
             )
             if self.is_logging:
                 self._console.out("\n")
+
+        except ollama.ResponseError as e:
+            if self.is_logging:
+                rich.print(f"[red]Error: {e}[/red]")
+            else:
+                sys.stderr.write(f"Error: {e}\n")
+
+            self.messages.append({"role": "assistant", "error": str(e)})
+            return []
 
         except Exception as e:
             # Print stacktrace

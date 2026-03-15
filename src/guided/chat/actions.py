@@ -77,7 +77,10 @@ class HelpAction(Action):
         return ["h", "?"]
 
     def execute(self, ctx: ActionContext, args: str = "") -> bool:
-        rich.print("\n[bold]Available actions:[/bold]")
+        rich.print("")
+        rich.print("Use `!` to run commands on the containerized workspace.")
+        rich.print("")
+        rich.print("[bold]Available actions:[/bold]")
         for name in ctx.registry.get_all_action_names():
             action = ctx.registry.actions[name]
             rich.print(f"  [cyan]/{name}[/cyan] — {action.description}")
