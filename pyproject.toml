@@ -12,9 +12,9 @@ dependencies = [
     "dunamai>=1.26.0",
     "ollama>=0.6.1",
     "deepeval>=3.8.9",
-    "docker-py>=1.10.6",
     "ddgs>=9.11.3",
     "prompt-toolkit>=3.0.52",
+    "docker>=7.1.0",
 ]
 
 [dependency-groups]
