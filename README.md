@@ -8,7 +8,7 @@ The idea is simple. Avoid spaghetti code and create maintainable code by making 
 
 - Provide a framework to execute in parallel
 - Leverage local LLMs with instruction following and thinking
-- Use tools in a containerized environment
+- Use tools in a containerized environment with Kubernetes
 - Log everything and make it reversible
 
 ---
