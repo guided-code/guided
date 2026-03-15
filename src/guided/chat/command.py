@@ -21,6 +21,7 @@ from guided.configure.schema import Configuration, Skill
 from guided.environment import is_debug
 from guided.skills.executor import execute_skill
 from guided.skills import DEFAULT_TOOLS
+from guided.skills.container import exec_command
 
 logger = logging.getLogger("guided.core")
 
@@ -186,6 +187,31 @@ class ChatSession:
                     )
                     if should_exit:
                         break
+                    continue
+
+                # Container exec
+                if user_input.strip().startswith("!"):
+                    cmd_to_run = user_input.strip()[1:].strip()
+                    if cmd_to_run:
+                        try:
+                            status = None
+                            if self.is_logging:
+                                status = self._console.status(
+                                    f"[bold magenta]Executing `{cmd_to_run}`...[/bold magenta]",
+                                    spinner="dots",
+                                )
+                                status.start()
+
+                            output = exec_command(cmd_to_run)
+
+                            if status is not None:
+                                status.stop()
+
+                            rich.print(output)
+                        except Exception as e:
+                            if 'status' in locals() and status is not None:
+                                status.stop()
+                            rich.print(f"[red]Error executing command: {e}[/red]")
                     continue
 
                 # Process response
