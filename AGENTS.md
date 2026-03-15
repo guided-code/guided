@@ -42,7 +42,7 @@ This tool is designed utilizes an opinionated approach to managing a Kubernetes 
 
 ### Container image layout (`/usr/src`)
 
-A project's source code is expected to be mounted within `/usr/src` in the container.  If the project has multiple tools or services they should be mounted in subdirectories of `/usr/src`.  For example, a project with an `app` backend might be mounted in `/usr/src/app`.  
+A project's current working directory is expected to be mounted within `/workspace` in the container.  
 
 
 ### Workspace layout (`.workspace/`)
@@ -61,9 +61,21 @@ Config is stored as YAML at `~/.guided/config.yaml`. The schema is `Configuratio
 
 The default configuration includes an Ollama provider pointing to `http://localhost:11434`.
 
+
+### Actions
+
+Actions are slash commands such as `/clear`, `/help`, `/exit`, etc. which are run during interactive chat sessions
+
 ### Skills
 
-A `Skill` is a pydantic data object that represents a tool the LLM can use. By default a set of `Skills` are registered in the skills modules. When a skill is executed an invocation object `SkillExecution` captures results.
+Skills are tools the LLM can use. When a skill is executed an invocation object `SkillExecution` captures results.  Skills are registered in the `skills` modules.
+
+Default skills include:
+
+- `search_web_text` — Query the Internet for information
+- `request_web` — Read a Web page from the Internet
+
+
 
 ## Tests
 

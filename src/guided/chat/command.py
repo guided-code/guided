@@ -234,8 +234,6 @@ class ChatSession:
                         result = exec.result
                     else:
                         result = f"Tool ['{handler.name}'] use cancelled by user."
-                        self.messages.append({"role": "tool", "content": result})
-                        return
 
             # Append results
             self.messages.append({"role": "tool", "content": result})

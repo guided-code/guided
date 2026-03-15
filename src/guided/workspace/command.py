@@ -14,8 +14,34 @@ SUBDIRS = ["decisions", "transcripts", "context"]
 
 
 def find_workspace(path: Path) -> Optional[Path]:
+    """
+    Ensures the path is a folder and contains a .workspace directory.
+
+    Args:
+        path: The path to check.
+
+    Returns:
+        The workspace if found, otherwise None.
+    """
     workspace = path / WORKSPACE_DIR
     return workspace if workspace.is_dir() else None
+
+
+def find_workspace_root(start_path: Optional[str] = None) -> Path:
+    """
+    Find the root of the workspace by searching for the .workspace directory in the local filesystem.
+
+    Args:
+        start_path: Optional, the starting path to search from.
+
+    Returns:
+        The root of the workspace if found, otherwise the current working directory.
+    """
+    current = (Path(start_path) if start_path is not None else Path.cwd()).resolve()
+    for parent in [current, *current.parents]:
+        if (parent / WORKSPACE_DIR).is_dir():
+            return parent
+    return current
 
 
 def load_workspace_config(workspace: Path) -> WorkspaceConfig:
