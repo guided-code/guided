@@ -19,11 +19,8 @@ from guided.chat.actions import ActionContext, get_actions_registry
 from guided.configure.config import load_agents_md
 from guided.configure.schema import Configuration, Skill
 from guided.environment import is_debug
-from guided.skills.container import read_file
 from guided.skills.executor import execute_skill
-from guided.skills.web_search import search_web_text
-
-DEFAULT_TOOLS = [read_file, search_web_text]
+from guided.skills import DEFAULT_TOOLS
 
 logger = logging.getLogger("guided.core")
 
@@ -103,7 +100,7 @@ class ChatSession:
         """Setup default tools and skills"""
 
         # Maps existing default tools to skills
-        self._tools = DEFAULT_TOOLS
+        self._tools = DEFAULT_TOOLS.copy()
         for tool in self._tools:
             skill = Skill(
                 name=tool.__name__,
@@ -132,11 +129,13 @@ class ChatSession:
             include_default_pygments_style=False,
         )
 
-    def confirm_user(self) -> str:
+    def confirm_tool_use(self) -> str:
         return confirm(message="Confirm tool use? ", suffix="(y/[n]) ")
 
     def run(self, text: Optional[str] = None):
         """Start the interactive chat loop or process a single message."""
+        self.in_thinking = False
+
         if self.model is None or self.provider is None:
             raise RuntimeError(
                 "Call resolve_model() and resolve_provider() before run()"
@@ -198,7 +197,11 @@ class ChatSession:
         """If msg has tool calls, execute them and re-query until a plain response arrives."""
         empty_tool_calls = not tool_calls
         disabled_tools = not self.use_tools
-        if empty_tool_calls or disabled_tools:
+
+        if empty_tool_calls:
+            return
+        elif disabled_tools:
+            self.messages.append({"role": "tool", "content": "Tools are disabled."})
             return
 
         # Display tool calls
@@ -224,11 +227,15 @@ class ChatSession:
             else:
                 if not self.is_interactive:
                     result = f"Tool ['{handler.name}'] use not confirmed in non-interactive mode."
-                elif self.confirm_user():
-                    exec = execute_skill(skill, **dict(handler.arguments))
-                    result = exec.result
                 else:
-                    result = f"Tool ['{handler.name}'] use cancelled by user."
+                    rich.print("")
+                    if self.confirm_tool_use():
+                        exec = execute_skill(skill, **dict(handler.arguments))
+                        result = exec.result
+                    else:
+                        result = f"Tool ['{handler.name}'] use cancelled by user."
+                        self.messages.append({"role": "tool", "content": result})
+                        return
 
             # Append results
             self.messages.append({"role": "tool", "content": result})
@@ -260,7 +267,6 @@ class ChatSession:
                 status.stop()
 
             # Stream response
-            in_thinking = False
             thinking = ""
             content = ""
             for chunk in stream:
@@ -273,8 +279,8 @@ class ChatSession:
                     return message.tool_calls
 
                 # Started thinking
-                if message.thinking and not in_thinking:
-                    in_thinking = True
+                if message.thinking and not self.in_thinking:
+                    self.in_thinking = True
                     if self.is_logging:
                         self._console.out(
                             "\n[Assistant (Thinking)]: ", style="dim magenta", end=""
@@ -285,17 +291,17 @@ class ChatSession:
                 # Not thinking
                 if not message.thinking:
                     # Stopped thinking
-                    if in_thinking:
+                    if self.in_thinking:
                         if self.is_logging:
                             self._console.out(
                                 "\n\n[Assistant]: ", style="dim magenta", end=""
                             )
                         else:
                             self._console.out("\n</think>")
-                    in_thinking = False
+                    self.in_thinking = False
 
                 # Echo thinking
-                if in_thinking:
+                if self.in_thinking:
                     thinking += message.thinking
                     self._console.out(message.thinking, style="dim", end="")
 
