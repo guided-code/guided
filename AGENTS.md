@@ -2,7 +2,7 @@
 
 Guided is a CLI tool designed to amplify the work of engineers by providing the scaffolding necessary to build great software with agentic AI resources.
 
-Changes to a project are managed in a containerized environment associated with a Git worktree. Project level details are managed in a workspace.
+Projects are designed to operate in Kubernetes in containerized environments.  A workspace is a project root folder that is associated with one more more container images.  
 
 ## Commands
 
@@ -19,6 +19,8 @@ The `guide configure` command accepts an `--use_default` flag to reset the confi
 ## Architecture
 
 `guided` is a Python CLI tool built with **Typer** and **Rich**. The entry point is `guided.cli:run` (registered as the `guide` binary).
+
+This tool is designed utilizes an opinionated approach to managing a Kubernetes project and favors convention over configuration.  
 
 ### Module layout (`src/guided/`)
 
@@ -37,6 +39,21 @@ The `guide configure` command accepts an `--use_default` flag to reset the confi
   - `command.py` — Streams responses from ollama; loads AGENTS.md context from `./AGENTS.md`, `.workspace/AGENTS.md`, or `.workspace/context/AGENTS.md`
   - `actions.py` — In-chat slash command system: `Action` ABC, `ActionContext`, `ActionRegistry`, built-in `ExitAction` (`/exit`, `/quit`, `/bye`, `/q`) and `HelpAction` (`/help`)
 - `agents/` — stub (not registered in CLI)
+
+### Container image layout (`/usr/src`)
+
+A project's source code is expected to be mounted within `/usr/src` in the container.  If the project has multiple tools or services they should be mounted in subdirectories of `/usr/src`.  For example, a project with an `app` backend might be mounted in `/usr/src/app`.  
+
+
+### Workspace layout (`.workspace/`)
+
+A workspace configuration folder is created at `.workspace/` when a project is initialized.  
+
+- `config.yaml` — Workspace configuration (name, version, created_at)
+- `decisions/` — Decision records
+- `transcripts/` — Chat transcripts
+- `context/` — Context files
+
 
 ### Config file
 

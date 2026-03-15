@@ -2,9 +2,9 @@
 
 ## What is Guided?
 
-Guided is a CLI tool designed to amplify the work of engineers using AI.
+Guided is a CLI tool designed to amplify the work of engineers using AI.  
 
-The idea is simple. Avoid spaghetti code and create maintainable code by making a solid scaffold.
+The idea is simple. Avoid spaghetti code and create maintainable code by making a solid scaffold.  
 
 - Provide a framework to execute in parallel
 - Leverage local LLMs with instruction following and thinking
