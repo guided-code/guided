@@ -125,14 +125,11 @@ class ChatSession:
     def prompt_user(self) -> str:
         style = style_from_pygments_cls(get_style_by_name("monokai"))
         return self.get_prompt_session().prompt(
-            HTML("<seagreen>[You]: </seagreen>"),
+            HTML("\n<seagreen>[You]: </seagreen>"),
             lexer=PygmentsLexer(HtmlLexer),
             style=style,
             include_default_pygments_style=False,
         )
-
-    def confirm_tool_use(self) -> str:
-        return confirm(message="Confirm tool use? ", suffix="(y/[n]) ")
 
     def run(self, text: Optional[str] = None):
         """Start the interactive chat loop or process a single message."""
@@ -231,13 +228,6 @@ class ChatSession:
             self.messages.append({"role": "tool", "content": "Tools are disabled."})
             return
 
-        # Display tool calls
-        if self.is_logging:
-            for tool_call in tool_calls:
-                rich.print(
-                    f"[dim]  → {tool_call.function.name}({dict(tool_call.function.arguments)})[/dim]"
-                )
-
         # Call all tools
         for tool_call in tool_calls:
             # Requested tool
@@ -256,14 +246,19 @@ class ChatSession:
                     result = f"Tool ['{handler.name}'] use not confirmed in non-interactive mode."
                 else:
                     rich.print("")
-                    if self.confirm_tool_use():
+                    if confirm(
+                        message=f"Confirm tool [{handler.name}] use? ",
+                        suffix="(y/[n]) ",
+                    ):
                         exec = execute_skill(skill, **dict(handler.arguments))
                         result = exec.result
                     else:
                         result = f"Tool ['{handler.name}'] use cancelled by user."
 
             # Append results
-            self.messages.append({"role": "tool", "content": result})
+            self.messages.append(
+                {"role": "tool", "tool_call_id": handler.name, "content": result}
+            )
 
     def _send(self, client):
         """Send the current message history, executing any tool calls, and print the reply.
@@ -272,6 +267,7 @@ class ChatSession:
             List of tool calls if the message contains tool calls, empty list otherwise.
         """
         disabled_tools = not self.use_tools
+        tool_calls = []
         try:
             status = None
             if self.is_logging:
@@ -301,15 +297,19 @@ class ChatSession:
                 # Tool call
                 if not disabled_tools and message.tool_calls:
                     if self.is_logging:
-                        self._console.out("")
-                    return message.tool_calls
+                        for tool_call in message.tool_calls:
+                            rich.print(
+                                f"\n[dim]  → {tool_call.function.name}({dict(tool_call.function.arguments)})[/dim]",
+                                end="",
+                            )
+                    tool_calls.extend(message.tool_calls)
 
                 # Started thinking
                 if message.thinking and not self.in_thinking:
                     self.in_thinking = True
                     if self.is_logging:
                         self._console.out(
-                            "\n[Assistant (Thinking)]: ", style="dim magenta", end=""
+                            "\n\n[Assistant (Thinking)]: ", style="dim magenta", end=""
                         )
                     else:
                         self._console.out("<think>")
@@ -318,12 +318,13 @@ class ChatSession:
                 if not message.thinking:
                     # Stopped thinking
                     if self.in_thinking:
-                        if self.is_logging:
-                            self._console.out(
-                                "\n\n[Assistant]: ", style="dim magenta", end=""
-                            )
-                        else:
-                            self._console.out("\n</think>")
+                        if message.content != "":
+                            if self.is_logging:
+                                self._console.out(
+                                    "\n\n[Assistant]: ", style="dim magenta", end=""
+                                )
+                            else:
+                                self._console.out("</think>")
                     self.in_thinking = False
 
                 # Echo thinking
@@ -340,8 +341,6 @@ class ChatSession:
             self.messages.append(
                 {"role": "assistant", "thinking": thinking, "content": content}
             )
-            if self.is_logging:
-                self._console.out("\n")
 
         except ollama.ResponseError as e:
             if self.is_logging:
@@ -353,7 +352,7 @@ class ChatSession:
             self.messages.append(
                 {"role": "assistant", "error": str(e), "stacktrace": stacktrace}
             )
-            return []
+            return tool_calls
 
         except Exception as e:
             # Print stacktrace
@@ -365,7 +364,7 @@ class ChatSession:
                 sys.stderr.write(f"Error: {e}\n")
             raise typer.Exit(1)
 
-        return []
+        return tool_calls
 
 
 def run_chat(

@@ -11,7 +11,7 @@ WORKING_DIR = "/workspace"
 
 def exec_command(command: str, working_dir: Optional[str] = WORKING_DIR) -> str:
     """
-    Execute a command in a container where the current working folder is mounted as /workspace.
+    Executes a command in the container where the current working folder is mounted as /workspace.
 
     Args:
         command: The command to execute.
@@ -75,12 +75,16 @@ def list_files(folder_path: Optional[str] = None) -> str:
         return f"Failed to list folders in {folder_path}: {e}"
 
 
-def read_file(file_path: str) -> str:
+def read_file(
+    file_path: str, start_line: int = 0, end_line: Optional[int] = None
+) -> str:
     """
     Read a file in the workspace folder.  Intended for reading text files which are compatible with the model context.
 
     Args:
         path: The path to the file.
+        start_line: Optional, the line number to start reading from (0-indexed).
+        end_line: Optional, the line number to stop reading at (exclusive).
 
     Returns:
         The content of the file.
@@ -98,7 +102,14 @@ def read_file(file_path: str) -> str:
         return f"Error: Path `{file_path}` is not a file"
 
     try:
-        return f"```@{file_path}\n{target_path.read_text()}\n```"
+        lines = []
+        with target_path.open(target_path, "r") as f:
+            lines = f.readlines()
+
+        selected_lines = (
+            lines[start_line:end_line] if end_line is not None else lines[start_line:]
+        )
+        return f"```@{file_path}\n{selected_lines}\n```"
     except Exception as e:
         return f"Failed to read {file_path}: {e}"
 
