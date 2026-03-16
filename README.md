@@ -11,8 +11,6 @@ The idea is simple. Avoid spaghetti code and create maintainable code by making 
 - Use tools in a containerized environment with Kubernetes
 - Log everything and make it reversible
 
----
-
 ## Philosophy
 
 We believe that while work can be automated, engineers are an important piece of the puzzle when it comes to managing software.
@@ -22,8 +20,6 @@ While automation and artificial intelligence can be leveraged to write code quic
 Properly planned code can go a long way to not only solve problems scaling but also increase velocity and maintainability.
 
 The goal of Guided is to provide a framework for engineers to manage the direction of a project while leveraging AI to execute the work.
-
----
 
 ## Usage
 

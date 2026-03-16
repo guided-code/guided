@@ -1,5 +1,6 @@
 import logging
 import sys
+import traceback
 from typing import List, Optional, Self
 
 import ollama
@@ -279,6 +280,7 @@ class ChatSession:
                 )
                 status.start()
 
+            # Send messages to model
             stream = client.chat(
                 model=self.model,
                 messages=self.messages,
@@ -347,7 +349,10 @@ class ChatSession:
             else:
                 sys.stderr.write(f"Error: {e}\n")
 
-            self.messages.append({"role": "assistant", "error": str(e)})
+            stacktrace = traceback.format_exc()
+            self.messages.append(
+                {"role": "assistant", "error": str(e), "stacktrace": stacktrace}
+            )
             return []
 
         except Exception as e:
@@ -377,7 +382,9 @@ def run_chat(
     if agents_content:
         if is_interactive:
             rich.print("[dim]Loaded agent context from AGENTS.md[/dim]")
-        messages.append({"role": "system", "content": agents_content})
+        messages.append(
+            {"role": "system", "content": f"```@AGENTS.md\n{agents_content}```"}
+        )
 
     session = (
         ChatSession(

@@ -20,11 +20,11 @@ def exec_command(command: str, working_dir: Optional[str] = WORKING_DIR) -> str:
     Returns:
         The output of the command.
     """
-    work_dir = find_workspace_root()
+    workspace_root = find_workspace_root()
     client = docker.from_env()
 
     host_config = client.api.create_host_config(
-        binds={str(work_dir): {"bind": MOUNT_PATH, "mode": "rw"}}
+        binds={str(workspace_root): {"bind": MOUNT_PATH, "mode": "rw"}}
     )
     container = client.api.create_container(
         image=CONTAINER_IMAGE,
