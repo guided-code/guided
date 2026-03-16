@@ -168,11 +168,6 @@ class ChatSession:
                     rich.print("\n[dim]Goodbye.[/dim]")
                     break
 
-                # Exit
-                if not user_input.strip():
-                    rich.print("[dim]Goodbye.[/dim]")
-                    break
-
                 # Action
                 if user_input.strip().startswith("/"):
                     action_context = ActionContext(
@@ -245,6 +240,10 @@ class ChatSession:
                 if not self.is_interactive:
                     result = f"Tool ['{handler.name}'] use not confirmed in non-interactive mode."
                 else:
+                    rich.print(
+                        f"\n[dim]  → {handler.name}({dict(handler.arguments)})[/dim]",
+                        end="",
+                    )
                     rich.print("")
                     if confirm(
                         message=f"Confirm tool [{handler.name}] use? ",
@@ -296,12 +295,6 @@ class ChatSession:
 
                 # Tool call
                 if not disabled_tools and message.tool_calls:
-                    if self.is_logging:
-                        for tool_call in message.tool_calls:
-                            rich.print(
-                                f"\n[dim]  → {tool_call.function.name}({dict(tool_call.function.arguments)})[/dim]",
-                                end="",
-                            )
                     tool_calls.extend(message.tool_calls)
 
                 # Started thinking
@@ -344,9 +337,9 @@ class ChatSession:
 
         except ollama.ResponseError as e:
             if self.is_logging:
-                rich.print(f"[red]Error: {e}[/red]")
+                rich.print(f"\n[red]Error: {e}[/red]")
             else:
-                sys.stderr.write(f"Error: {e}\n")
+                sys.stderr.write(f"\nError: {e}\n")
 
             stacktrace = traceback.format_exc()
             self.messages.append(
@@ -361,7 +354,7 @@ class ChatSession:
             if self.is_logging:
                 rich.print(f"[red]Error: {e}[/red]")
             else:
-                sys.stderr.write(f"Error: {e}\n")
+                sys.stderr.write(f"\nError: {e}\n")
             raise typer.Exit(1)
 
         return tool_calls
@@ -382,7 +375,10 @@ def run_chat(
         if is_interactive:
             rich.print("[dim]Loaded agent context from AGENTS.md[/dim]")
         messages.append(
-            {"role": "system", "content": f"```@AGENTS.md\n{agents_content}```"}
+            {
+                "role": "system",
+                "content": f"```@AGENTS.md\n{agents_content}```\n\nIgnore the `.workspace` folder and its contents unless explicitly asked.",
+            }
         )
 
     session = (

@@ -79,7 +79,7 @@ def read_file(
     file_path: str, start_line: int = 0, end_line: Optional[int] = None
 ) -> str:
     """
-    Read a file in the workspace folder.  Intended for reading text files which are compatible with the model context.
+    Read a file in the workspace folder.  Read specific lines while debugging.
 
     Args:
         path: The path to the file.
@@ -103,7 +103,7 @@ def read_file(
 
     try:
         lines = []
-        with target_path.open(target_path, "r") as f:
+        with target_path.open("r") as f:
             lines = f.readlines()
 
         selected_lines = (
