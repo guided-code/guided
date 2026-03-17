@@ -1,5 +1,6 @@
 import logging
 import sys
+import textwrap
 import traceback
 from typing import List, Optional, Self
 
@@ -40,7 +41,7 @@ class ChatSession:
         self.config = config
         self.model: Optional[str] = None
         self.provider = None
-        self.messages = messages if messages is not None else []
+        self.messages = [] if messages is None else messages
         self.is_logging = is_logging
         self.is_interactive = is_interactive
         self.use_thinking = use_thinking
@@ -360,6 +361,25 @@ class ChatSession:
         return tool_calls
 
 
+def get_system_prompt() -> str:
+    agents_content = load_agents_md()
+    system_prompt = ""
+    if agents_content:
+        system_prompt += """Use the AGENT.md file to guide your responses.
+                
+            ```@AGENTS.md\n{agents_content}```
+
+        """
+    system_prompt += """Additional instructions:
+
+            * Commands are executed within a container with the current working directory mounted as `/workspace`. 
+            * Ignore the `.workspace/` folder and its contents unless explicitly asked.
+            * Services are deployed using Kubernetes and can be interacted with using tools
+            * Write a Dockerfile to build image(s) as necessary and a set of manifest files `manifests/` to deploy
+        """
+    return textwrap.dedent(system_prompt)
+
+
 def run_chat(
     config: Configuration,
     model: Optional[str] = None,
@@ -367,19 +387,12 @@ def run_chat(
     use_tools: bool = True,
 ):
     is_interactive = sys.stdin.isatty()
-    messages = []
-
-    # Load and prefix AGENTS.md content
-    agents_content = load_agents_md()
-    if agents_content:
-        if is_interactive:
-            rich.print("[dim]Loaded agent context from AGENTS.md[/dim]")
-        messages.append(
-            {
-                "role": "system",
-                "content": f"```@AGENTS.md\n{agents_content}```\n\nIgnore the `.workspace` folder and its contents unless explicitly asked.",
-            }
-        )
+    messages = [
+        {
+            "role": "system",
+            "content": get_system_prompt(),
+        }
+    ]
 
     session = (
         ChatSession(
