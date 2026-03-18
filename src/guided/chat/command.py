@@ -365,19 +365,22 @@ def get_system_prompt() -> str:
     agents_content = load_agents_md()
     system_prompt = ""
     if agents_content:
-        system_prompt += """Use the AGENT.md file to guide your responses.
+        system_prompt += textwrap.dedent(f"""
+            Use the AGENT.md file to guide your responses.
                 
-            ```@AGENTS.md\n{agents_content}```
-
-        """
-    system_prompt += """Additional instructions:
+            ```@AGENTS.md
+            {agents_content}
+            ```
+        """)
+    system_prompt += textwrap.dedent("""
+        Additional instructions:
 
             * Commands are executed within a container with the current working directory mounted as `/workspace`. 
             * Ignore the `.workspace/` folder and its contents unless explicitly asked.
             * Services are deployed using Kubernetes and can be interacted with using tools
             * Write a Dockerfile to build image(s) as necessary and a set of manifest files `manifests/` to deploy
-        """
-    return textwrap.dedent(system_prompt)
+        """)
+    return system_prompt
 
 
 def run_chat(
