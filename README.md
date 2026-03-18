@@ -1,3 +1,5 @@
+> **Warning:** Guided is an experimental tool and is under active development. APIs, configuration, and behavior may change without notice. Use with caution.
+
 # Guided
 
 ## What is Guided?
