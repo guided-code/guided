@@ -24,6 +24,7 @@ from guided.environment import is_debug
 from guided.skills.executor import execute_skill
 from guided.skills import DEFAULT_TOOLS
 from guided.skills.container import exec_command
+from guided.workspace.command import initialize_workspace, find_workspace_root
 
 logger = logging.getLogger("guided.core")
 
@@ -141,6 +142,22 @@ class ChatSession:
                 "Call resolve_model() and resolve_provider() before run()"
             )
 
+        # Prompt user
+        if self.is_logging:
+            rich.print("[bold][Guided][/bold]")
+            rich.print("Version: ", get_version())
+            rich.print(
+                f"[bold]Chatting with[/bold] [cyan]{self.model}[/cyan] via [cyan]{self.provider.name}[/cyan]"
+            )
+            rich.print("")
+            rich.print("Type your message and press Enter. Press Ctrl+C to exit.")
+            rich.print("Type [cyan]/help[/cyan] for available actions.\n")
+
+        # Initialize workspace by default
+        initialize_workspace(
+            find_workspace_root("."), is_interactive=self.is_interactive
+        )
+
         client = ollama.Client(host=self.provider.base_url)
 
         # Send once
@@ -151,15 +168,6 @@ class ChatSession:
 
         # Interactive loop
         else:
-            rich.print("[bold][Guided][/bold]")
-            rich.print("Version: ", get_version())
-            rich.print(
-                f"[bold]Chatting with[/bold] [cyan]{self.model}[/cyan] via [cyan]{self.provider.name}[/cyan]"
-            )
-            rich.print("")
-            rich.print("Type your message and press Enter. Press Ctrl+C to exit.")
-            rich.print("Type [cyan]/help[/cyan] for available actions.\n")
-
             while True:
                 # User input prompt
                 try:
@@ -369,9 +377,9 @@ def get_system_prompt() -> str:
             Use the AGENT.md file to guide your responses.
                 
             ```@AGENTS.md
-            {agents_content}
-            ```
-        """)
+            """)
+        system_prompt += agents_content
+        system_prompt += "\n```\n\n"
     system_prompt += textwrap.dedent("""
         Additional instructions:
 
@@ -396,7 +404,6 @@ def run_chat(
             "content": get_system_prompt(),
         }
     ]
-
     session = (
         ChatSession(
             config=config,

@@ -57,7 +57,11 @@ def save_workspace_config(workspace: Path, config: WorkspaceConfig) -> None:
         yaml.dump(config.model_dump(), f, default_flow_style=False)
 
 
-def initialize_workspace(path: Optional[Path] = None, name: Optional[str] = None):
+def initialize_workspace(
+    path: Optional[Path] = None,
+    name: Optional[str] = None,
+    is_interactive: bool = True,
+):
     target = (path or Path.cwd()).resolve()
 
     if not target.is_dir():
@@ -79,10 +83,11 @@ def initialize_workspace(path: Optional[Path] = None, name: Optional[str] = None
 
     save_workspace_config(workspace, config)
 
-    rich.print(f"[green]Workspace initialized:[/green] {workspace}")
-    rich.print(f"  [dim]name:[/dim]      {config.name}")
-    rich.print(f"  [dim]created:[/dim]   {config.created_at}")
-    rich.print(f"  [dim]folders:[/dim]   {', '.join(SUBDIRS)}")
+    if is_interactive:
+        rich.print(f"[green]Workspace initialized:[/green] {workspace}")
+        rich.print(f"  [dim]name:[/dim]      {config.name}")
+        rich.print(f"  [dim]created:[/dim]   {config.created_at}")
+        rich.print(f"  [dim]folders:[/dim]   {', '.join(SUBDIRS)}")
     return True
 
 
