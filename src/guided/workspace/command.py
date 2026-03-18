@@ -141,7 +141,7 @@ def initialize_workspace(
         config = WorkspaceConfig(name=workspace_name, workspace_key=workspace_key())
 
         if confirm(
-            message=f"Confirm create a new workspace at: {workspace_path} with",
+            message=f"Confirm create a new workspace at: {workspace_path}: ",
             suffix="(y/[n]) ",
         ):
             workspace_path.mkdir()

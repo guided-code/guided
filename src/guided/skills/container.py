@@ -4,12 +4,16 @@ import docker
 
 from guided.workspace.command import find_workspace_root
 
-CONTAINER_IMAGE = "alpine:latest"
+DEFAULT_CONTAINER_IMAGE = "alpine:latest"
 MOUNT_PATH = "/workspace"
 WORKING_DIR = "/workspace"
 
 
-def exec_command(command: str, working_dir: Optional[str] = WORKING_DIR) -> str:
+def exec_command(
+    command: str,
+    working_dir: Optional[str] = WORKING_DIR,
+    container_image: str = DEFAULT_CONTAINER_IMAGE,
+) -> str:
     """
     Executes a command in the container where the current working folder is mounted as /workspace.
 
@@ -27,7 +31,7 @@ def exec_command(command: str, working_dir: Optional[str] = WORKING_DIR) -> str:
         binds={str(workspace_root): {"bind": MOUNT_PATH, "mode": "rw"}}
     )
     container = client.api.create_container(
-        image=CONTAINER_IMAGE,
+        image=container_image,
         command=command,
         working_dir=working_dir,
         volumes=[MOUNT_PATH],
@@ -119,7 +123,7 @@ def write_file(file_path: str, content: str) -> str:
     Write a file to the workspace folder.
 
     Args:
-        file_path: The path to the file.
+        file_path: A relative file path within the workspace
         content: The content of the file.
 
     Returns:
