@@ -206,6 +206,7 @@ class ChatSession:
                         if "status" in locals() and status is not None:
                             status.stop()
                         rich.print(f"[red]Error executing command: {e}[/red]")
+                        logging.error("Exception occurred during command execution", exc_info=True)
                 continue
 
             # Process response
