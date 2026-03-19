@@ -9,6 +9,48 @@ MOUNT_PATH = "/workspace"
 WORKING_DIR = "/workspace"
 
 
+def build_container_image(
+    tag: str,
+    dockerfile_path: Optional[str] = "Dockerfile",
+) -> str:
+    """
+    Builds a container image from a Dockerfile in the workspace.
+
+    Args:
+        tag: The image name and optional tag (e.g. "myapp:latest").
+        dockerfile_path: Optional relative path to the Dockerfile within the workspace.
+                         Defaults to "Dockerfile" at the workspace root.
+
+    Returns:
+        A success message with the image tag, or an error message.
+    """
+    workspace_root = find_workspace_root()
+    dockerfile = Path(workspace_root / (dockerfile_path or "Dockerfile")).resolve()
+
+    if not dockerfile.is_relative_to(workspace_root):
+        return "Error: Dockerfile path is outside the workspace"
+
+    if not dockerfile.exists():
+        return f"Error: Dockerfile not found at {dockerfile}"
+
+    client = docker.from_env()
+    try:
+        _, logs = client.images.build(
+            path=str(workspace_root),
+            dockerfile=str(dockerfile),
+            tag=tag,
+            rm=True,
+        )
+        for entry in logs:
+            if "error" in entry:
+                return f"Build failed: {entry['error'].strip()}"
+        return f"Successfully built image {tag}"
+    except docker.errors.BuildError as e:
+        return f"Build failed: {e}"
+    except Exception as e:
+        return f"Failed to build container image: {e}"
+
+
 def exec_command(
     command: str,
     working_dir: Optional[str] = WORKING_DIR,
