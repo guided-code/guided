@@ -123,7 +123,9 @@ def initialize_workspace(
             config = load_workspace_config(workspace_path)
             if config.workspace_key != workspace_key():
                 if config.workspace_key is None:
-                    rich.print("[dim]Updating workspace key identifier[/dim]")
+                    rich.print(
+                        "[yellow]Notice:[/yellow] The CLI tool has been upgraded. Updating workspace configuration."
+                    )
                     config.workspace_key = workspace_key()
                     save_workspace_config(workspace_path, config)
                     return True

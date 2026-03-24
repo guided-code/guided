@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 
 from guided.chat.actions import (
     Action,
@@ -13,6 +14,13 @@ from guided.chat.actions import (
     get_actions_registry,
 )
 from guided.configure.schema import Configuration, Preference
+
+
+@pytest.fixture(autouse=True)
+def auto_confirm():
+    """Auto-confirm all prompt_toolkit confirm dialogs in tests."""
+    with patch("guided.workspace.command.confirm", return_value=True):
+        yield
 
 
 def make_ctx(registry=None, config=None) -> ActionContext:
