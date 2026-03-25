@@ -24,16 +24,12 @@ def chat(
     run_chat(ctx.obj, model=model)
 
 
-def make_config(**kwargs) -> Configuration:
-    return Configuration(**kwargs)
-
-
 OLLAMA_PROVIDER = Provider(name="ollama", base_url="http://localhost:11434")
 
 
 @pytest.fixture
 def config_with_model():
-    return make_config(
+    return Configuration(
         providers={"ollama": OLLAMA_PROVIDER},
         models={"codellama": Model(name="codellama:34b-python", provider="ollama")},
     )
@@ -41,7 +37,7 @@ def config_with_model():
 
 @pytest.fixture
 def config_with_default():
-    return make_config(
+    return Configuration(
         providers={"ollama": OLLAMA_PROVIDER},
         models={"llama3": Model(name="llama3", provider="ollama", is_default=True)},
     )
@@ -49,7 +45,7 @@ def config_with_default():
 
 @pytest.fixture
 def empty_config():
-    return make_config()
+    return Configuration()
 
 
 def _mock_response(content: str) -> MagicMock:
