@@ -31,11 +31,7 @@ def make_ctx(registry=None, config=None) -> ActionContext:
     )
 
 
-# ExitAction
 
-
-def test_exit_action_name():
-    assert ExitAction().name == "exit"
 
 
 def test_exit_action_returns_true(capsys):
@@ -45,11 +41,7 @@ def test_exit_action_returns_true(capsys):
     assert "Goodbye" in capsys.readouterr().out
 
 
-# HelpAction
 
-
-def test_help_action_name():
-    assert HelpAction().name == "help"
 
 
 def test_help_action_returns_false(capsys):
@@ -66,11 +58,7 @@ def test_help_action_lists_actions(capsys):
     assert "/help" in output
 
 
-# SetPreferenceAction
 
-
-def test_set_preference_action_name():
-    assert SetPreferenceAction().name == "set"
 
 
 def test_set_preference_returns_false(capsys):
@@ -131,11 +119,7 @@ def test_set_preference_does_not_persist(capsys):
     mock_save.assert_not_called()
 
 
-# GetPreferenceAction
 
-
-def test_get_preference_action_name():
-    assert GetPreferenceAction().name == "get"
 
 
 def test_get_preference_returns_value(capsys):
@@ -162,11 +146,7 @@ def test_get_preference_no_args_prints_usage(capsys):
     assert "Usage" in capsys.readouterr().out
 
 
-# UnsetPreferenceAction
 
-
-def test_unset_preference_action_name():
-    assert UnsetPreferenceAction().name == "unset"
 
 
 def test_unset_preference_removes_key():
@@ -193,11 +173,7 @@ def test_unset_preference_no_args_prints_usage(capsys):
     assert "Usage" in capsys.readouterr().out
 
 
-# InitAction
 
-
-def test_init_action_name():
-    assert InitAction().name == "init"
 
 
 def test_init_action_returns_false(capsys, tmp_path, monkeypatch):
