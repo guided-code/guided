@@ -34,7 +34,7 @@ Install the CLI tool.
 Run the installation script (e.g. - always check an installation script by downloading and reading it first)
 
 ```bash
-curl "https://raw.githubusercontent.com/guided-code/guided/refs/heads/main/bin/install" | sh -h
+curl "https://raw.githubusercontent.com/guided-code/guided/refs/heads/main/bin/install" | /bin/sh
 ```
 
 Configure your environment by running:
