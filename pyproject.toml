@@ -1,6 +1,6 @@
 [project]
 name = "guided"
-version = "0.1.1"
+version = "0.1.2"
 description = "Guided is a CLI tool designed to amplify the work of engineers by providing the scaffolding necessary to build great software with agentic AI resources."
 readme = "README.md"
 requires-python = ">=3.12"
