@@ -89,7 +89,7 @@ def test_chat_no_default_when_default_false(config_with_model):
 @pytest.mark.with_llm
 def test_chat_with_actual_ollama(eval_model):
     """Test chat command against a real Ollama instance if available."""
-    config = make_config(
+    config = Configuration(
         providers={"ollama": OLLAMA_PROVIDER},
         models={
             "llm": Model(
