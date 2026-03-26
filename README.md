@@ -1,3 +1,5 @@
+> **Warning:** Guided is an experimental tool and is under active development. APIs, configuration, and behavior may change without notice. Use with caution.
+
 # Guided
 
 ## What is Guided?
@@ -11,8 +13,6 @@ The idea is simple. Avoid spaghetti code and create maintainable code by making 
 - Use tools in a containerized environment with Kubernetes
 - Log everything and make it reversible
 
----
-
 ## Philosophy
 
 We believe that while work can be automated, engineers are an important piece of the puzzle when it comes to managing software.
@@ -23,15 +23,13 @@ Properly planned code can go a long way to not only solve problems scaling but a
 
 The goal of Guided is to provide a framework for engineers to manage the direction of a project while leveraging AI to execute the work.
 
----
-
 ## Usage
 
 We recommend using [Ollama](https://ollama.com/); install it if you have not already. Install a model which supports tool calling and thinking.
 
-Use [uv](https://docs.astral.sh/uv/) to manage the Python virtual environment.  
+Use [uv](https://docs.astral.sh/uv/) to manage the Python virtual environment.
 
-Install the CLI tool.  
+Install the CLI tool.
 
 Run the installation script (e.g. - always check an installation script by downloading and reading it first)
 
@@ -54,12 +52,12 @@ guide chat
 Or use a command line interface
 
 ```bash
-echo "What files are in this directory?" | guide chat
+echo "What is 23 * 17?" | guide chat
 ```
 
 ## Agents
 
-Agents can be either third party agents or local agents. The default settings are to use local agents. 
+Agents can be either third party agents or local agents. The default settings are to use local agents.
 
 ## Tasks
 

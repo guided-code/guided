@@ -7,6 +7,8 @@ tmp/
 *.pyc
 __pycache__/
 dist/
+.ruff_cache
+.pytest_cache
 
 # Jupyter
 .ipynb_checkpoints

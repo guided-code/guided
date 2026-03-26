@@ -77,7 +77,10 @@ class HelpAction(Action):
         return ["h", "?"]
 
     def execute(self, ctx: ActionContext, args: str = "") -> bool:
-        rich.print("\n[bold]Available actions:[/bold]")
+        rich.print("")
+        rich.print("Use `!` to run commands on the containerized workspace.")
+        rich.print("")
+        rich.print("[bold]Available actions:[/bold]")
         for name in ctx.registry.get_all_action_names():
             action = ctx.registry.actions[name]
             rich.print(f"  [cyan]/{name}[/cyan] — {action.description}")
@@ -124,11 +127,19 @@ class HistoryAction(Action):
         rich.print("\n[bold]Chat History:[/bold]")
         for i, msg in enumerate(ctx.messages, start=1):
             role = msg.get("role", "unknown")
-            content = msg.get("content", "")
+
             rich.print(f"\n[bold]--- Message {i} ({role.capitalize()}) ---[/bold]")
-            rich.print(f"[cyan]{content}[/cyan]")
+            if "error" in msg:
+                stacktrace = msg.get("stacktrace", "")
+                rich.print(f"[red]{stacktrace}[/red]")
+                error = msg.get("error", "")
+                rich.print(f"[red]{error}[/red]")
+            else:
+                content = msg.get("content", "")
+                rich.print(f"[cyan]{content}[/cyan]")
             rich.print("[dim]---[/dim]")
-        rich.print()
+
+        rich.print("")
         return False
 
 

@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 
 from guided.chat.actions import (
     Action,
@@ -15,6 +16,13 @@ from guided.chat.actions import (
 from guided.configure.schema import Configuration, Preference
 
 
+@pytest.fixture(autouse=True)
+def auto_confirm():
+    """Auto-confirm all prompt_toolkit confirm dialogs in tests."""
+    with patch("guided.workspace.command.confirm", return_value=True):
+        yield
+
+
 def make_ctx(registry=None, config=None) -> ActionContext:
     return ActionContext(
         config=config if config is not None else Configuration(),
@@ -23,11 +31,7 @@ def make_ctx(registry=None, config=None) -> ActionContext:
     )
 
 
-# ExitAction
 
-
-def test_exit_action_name():
-    assert ExitAction().name == "exit"
 
 
 def test_exit_action_returns_true(capsys):
@@ -37,11 +41,7 @@ def test_exit_action_returns_true(capsys):
     assert "Goodbye" in capsys.readouterr().out
 
 
-# HelpAction
 
-
-def test_help_action_name():
-    assert HelpAction().name == "help"
 
 
 def test_help_action_returns_false(capsys):
@@ -58,11 +58,7 @@ def test_help_action_lists_actions(capsys):
     assert "/help" in output
 
 
-# SetPreferenceAction
 
-
-def test_set_preference_action_name():
-    assert SetPreferenceAction().name == "set"
 
 
 def test_set_preference_returns_false(capsys):
@@ -123,11 +119,7 @@ def test_set_preference_does_not_persist(capsys):
     mock_save.assert_not_called()
 
 
-# GetPreferenceAction
 
-
-def test_get_preference_action_name():
-    assert GetPreferenceAction().name == "get"
 
 
 def test_get_preference_returns_value(capsys):
@@ -154,11 +146,7 @@ def test_get_preference_no_args_prints_usage(capsys):
     assert "Usage" in capsys.readouterr().out
 
 
-# UnsetPreferenceAction
 
-
-def test_unset_preference_action_name():
-    assert UnsetPreferenceAction().name == "unset"
 
 
 def test_unset_preference_removes_key():
@@ -185,14 +173,11 @@ def test_unset_preference_no_args_prints_usage(capsys):
     assert "Usage" in capsys.readouterr().out
 
 
-# InitAction
 
 
-def test_init_action_name():
-    assert InitAction().name == "init"
 
-
-def test_init_action_returns_false(capsys):
+def test_init_action_returns_false(capsys, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     ctx = make_ctx()
     result = InitAction().execute(ctx)
     assert result is False
@@ -219,63 +204,7 @@ def test_init_action_describes_initialization(capsys, tmp_path, monkeypatch):
     assert (workspace / "context").exists()
 
 
-def test_get_preference_action_name():
-    assert GetPreferenceAction().name == "get"
 
-
-def test_get_preference_returns_value(capsys):
-    config = Configuration(preferences={"theme": Preference(key="theme", value="dark")})
-    ctx = make_ctx(config=config)
-    result = GetPreferenceAction().execute(ctx, "theme")
-    assert result is False
-    assert "dark" in capsys.readouterr().out
-
-
-def test_get_preference_missing_key_prints_error(capsys):
-    config = Configuration()
-    ctx = make_ctx(config=config)
-    result = GetPreferenceAction().execute(ctx, "theme")
-    assert result is False
-    assert "not set" in capsys.readouterr().out
-
-
-def test_get_preference_no_args_prints_usage(capsys):
-    config = Configuration()
-    ctx = make_ctx(config=config)
-    result = GetPreferenceAction().execute(ctx, "")
-    assert result is False
-    assert "Usage" in capsys.readouterr().out
-
-
-# UnsetPreferenceAction
-
-
-def test_unset_preference_action_name():
-    assert UnsetPreferenceAction().name == "unset"
-
-
-def test_unset_preference_removes_key():
-    config = Configuration(preferences={"theme": Preference(key="theme", value="dark")})
-    ctx = make_ctx(config=config)
-    result = UnsetPreferenceAction().execute(ctx, "theme")
-    assert result is False
-    assert "theme" not in config.preferences
-
-
-def test_unset_preference_missing_key_prints_error(capsys):
-    config = Configuration()
-    ctx = make_ctx(config=config)
-    result = UnsetPreferenceAction().execute(ctx, "theme")
-    assert result is False
-    assert "not set" in capsys.readouterr().out
-
-
-def test_unset_preference_no_args_prints_usage(capsys):
-    config = Configuration()
-    ctx = make_ctx(config=config)
-    result = UnsetPreferenceAction().execute(ctx, "")
-    assert result is False
-    assert "Usage" in capsys.readouterr().out
 
 
 # InitAction integration test
@@ -308,6 +237,13 @@ def test_dispatch_exit():
     registry = get_actions_registry()
     ctx = make_ctx(registry)
     assert registry.dispatch("/exit", ctx) is True
+
+
+def test_dispatch_init(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    registry = get_actions_registry()
+    ctx = make_ctx(registry)
+    assert registry.dispatch("/init", ctx) is False
 
 
 def test_dispatch_help():
@@ -394,32 +330,7 @@ def test_dispatch_question_mark_alias():
 # get_all_action_names
 
 
-# InitAction
 
-
-def test_init_action_name():
-    assert InitAction().name == "init"
-
-
-def test_init_action_returns_false():
-    ctx = make_ctx()
-    result = InitAction().execute(ctx)
-    assert result is False
-
-
-def test_init_action_describes_initialization():
-    ctx = make_ctx()
-    result = InitAction().execute(ctx)
-    assert result is False
-
-
-# test_dispatch_init
-
-
-def test_dispatch_init():
-    registry = get_actions_registry()
-    ctx = make_ctx(registry)
-    assert registry.dispatch("/init", ctx) is False
 
 
 def test_get_all_action_names_returns_init():
