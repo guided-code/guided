@@ -3,7 +3,7 @@
 set -eu
 
 install_location=$HOME/guided
-repo_location=git@github.com:guided-code/guided.git
+repo_location=https://github.com/guided-code/guided
 
 cleanup() {
   cd - > /dev/null
@@ -12,6 +12,13 @@ cleanup() {
 ensure_uv() {
   if ! command -v uv >/dev/null 2>&1; then
     echo "[.]Error: uv is not installed. Please install uv first."
+    exit 1
+  fi
+}
+
+ensure_git() {
+  if ! command -v git >/dev/null 2>&1; then
+    echo "[.]Error: git is not installed. Please install git first."
     exit 1
   fi
 }
@@ -49,6 +56,7 @@ cd $DIR/..
 trap cleanup INT EXIT
 
 # Start
+ensure_git
 ensure_uv
 download
 install
