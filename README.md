@@ -57,13 +57,7 @@ echo "What is 23 * 17?" | guide chat
 
 ## Agents
 
-Agents can be either third party agents or local agents. The default settings are to use local agents.
-
-## Tasks
-
-Tasks are services that can be run by the agents. Tasks can be configured on a workspace or at a global level.
-
-Before executing a task you should fully understand the task and the potential impact it may have on the project.
+Currently setup to use [Ollama](https://ollama.com/) to run local agents.
 
 ## Documentation
 
