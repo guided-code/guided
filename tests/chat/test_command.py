@@ -15,6 +15,13 @@ runner = CliRunner()
 app = typer.Typer()
 
 
+@pytest.fixture(autouse=True)
+def mock_workspace_operations():
+    with patch("guided.chat.command.initialize_workspace"), \
+         patch("guided.chat.command.ChatSession._save_transcript"):
+        yield
+
+
 @app.command()
 def chat(
     ctx: typer.Context,

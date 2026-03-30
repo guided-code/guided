@@ -2,11 +2,13 @@ import logging
 import sys
 import textwrap
 import traceback
+from datetime import datetime
 from typing import List, Optional, Self
 
 import ollama
 import rich
 import typer
+import yaml
 from prompt_toolkit import HTML, PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.lexers import PygmentsLexer
@@ -20,7 +22,6 @@ from guided import get_version
 from guided.chat.actions import ActionContext, get_actions_registry
 from guided.configure.config import load_agents_md
 from guided.configure.schema import Configuration, Skill
-from guided.environment import is_debug
 from guided.skills.executor import execute_skill
 from guided.skills import DEFAULT_TOOLS
 from guided.skills.container import exec_command
@@ -49,6 +50,12 @@ class ChatSession:
         self._skills_by_name = {}
         self._prompt_sesion = None
         self._prompt_history = None
+        self._transcript_file = None
+
+    def _save_transcript(self):
+        if getattr(self, "_transcript_file", None) is not None:
+            with open(self._transcript_file, "w") as f:
+                yaml.dump(self.messages, f, default_flow_style=False, sort_keys=False)
 
     def resolve_model(self, model: Optional[str] = None) -> Self:
         """Set model or fallback to default model configuration"""
@@ -129,7 +136,13 @@ class ChatSession:
 
     def run_once(self, text: Optional[str] = None):
         """Start processing a single message"""
+        workspace_root = find_workspace_root(".")
+        initialize_workspace(workspace_root)
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self._transcript_file = workspace_root / ".workspace" / "transcripts" / f"{timestamp}.yaml"
+
         self.messages.append({"role": "user", "content": text})
+        self._save_transcript()
 
         # Run-time loop
         client = ollama.Client(host=self.provider.base_url)
@@ -158,7 +171,11 @@ class ChatSession:
         rich.print("Type [cyan]/help[/cyan] for available actions.\n")
 
         # Initialize workspace by default
-        initialize_workspace(find_workspace_root("."))
+        workspace_root = find_workspace_root(".")
+        initialize_workspace(workspace_root)
+
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self._transcript_file = workspace_root / ".workspace" / "transcripts" / f"{timestamp}.yaml"
 
         client = ollama.Client(host=self.provider.base_url)
 
@@ -211,6 +228,7 @@ class ChatSession:
 
             # Process response
             self.messages.append({"role": "user", "content": user_input})
+            self._save_transcript()
             while tool_calls := self._send(client):
                 self._execute_tool_calls(client, tool_calls)
 
@@ -223,6 +241,7 @@ class ChatSession:
             return
         elif disabled_tools:
             self.messages.append({"role": "tool", "content": "Tools are disabled."})
+            self._save_transcript()
             return
 
         # Call all tools
@@ -257,6 +276,7 @@ class ChatSession:
             self.messages.append(
                 {"role": "tool", "tool_call_id": handler.name, "content": result}
             )
+            self._save_transcript()
 
     def _send(self, client):
         """Send the current message history, executing any tool calls, and print the reply.
@@ -324,6 +344,7 @@ class ChatSession:
             self.messages.append(
                 {"role": "assistant", "thinking": thinking, "content": content}
             )
+            self._save_transcript()
 
         except ollama.ResponseError as e:
             rich.print(f"\n[red]Error: {e}[/red]")
@@ -332,6 +353,7 @@ class ChatSession:
             self.messages.append(
                 {"role": "assistant", "error": str(e), "stacktrace": stacktrace}
             )
+            self._save_transcript()
             return tool_calls
 
         except Exception as e:
