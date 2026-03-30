@@ -7,6 +7,8 @@ from typing import List, Optional, Self
 
 import ollama
 import rich
+import uuid
+
 import typer
 import yaml
 from prompt_toolkit import HTML, PromptSession
@@ -51,6 +53,15 @@ class ChatSession:
         self._prompt_sesion = None
         self._prompt_history = None
         self._transcript_file = None
+        self.session_id = uuid.uuid4().hex[:8]
+
+    def reset_session_id(self):
+        self.session_id = uuid.uuid4().hex[:8]
+        if getattr(self, "_transcript_file", None) is not None:
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            self._transcript_file = (
+                self._transcript_file.parent / f"{self.session_id}_{timestamp}.yaml"
+            )
 
     def _save_transcript(self):
         if getattr(self, "_transcript_file", None) is not None:
@@ -139,7 +150,12 @@ class ChatSession:
         workspace_root = find_workspace_root(".")
         initialize_workspace(workspace_root)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        self._transcript_file = workspace_root / ".workspace" / "transcripts" / f"{timestamp}.yaml"
+        self._transcript_file = (
+            workspace_root
+            / ".workspace"
+            / "transcripts"
+            / f"{self.session_id}_{timestamp}.yaml"
+        )
 
         self.messages.append({"role": "user", "content": text})
         self._save_transcript()
@@ -175,7 +191,12 @@ class ChatSession:
         initialize_workspace(workspace_root)
 
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        self._transcript_file = workspace_root / ".workspace" / "transcripts" / f"{timestamp}.yaml"
+        self._transcript_file = (
+            workspace_root
+            / ".workspace"
+            / "transcripts"
+            / f"{self.session_id}_{timestamp}.yaml"
+        )
 
         client = ollama.Client(host=self.provider.base_url)
 
@@ -195,6 +216,7 @@ class ChatSession:
                     config=self.config,
                     messages=self.messages,
                     registry=self.registry,
+                    session=self,
                 )
                 should_exit = self.registry.dispatch(user_input.strip(), action_context)
                 if should_exit:
@@ -223,7 +245,9 @@ class ChatSession:
                         if "status" in locals() and status is not None:
                             status.stop()
                         rich.print(f"[red]Error executing command: {e}[/red]")
-                        logging.error("Exception occurred during command execution", exc_info=True)
+                        logging.error(
+                            "Exception occurred during command execution", exc_info=True
+                        )
                 continue
 
             # Process response

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from typing import Any
+
 import rich
 from pydantic import BaseModel, ConfigDict
 
@@ -15,6 +17,7 @@ class ActionContext(BaseModel):
     config: Configuration
     messages: list
     registry: ActionRegistry
+    session: Any = None
 
 
 class Action(ABC):
@@ -105,6 +108,8 @@ class ClearAction(Action):
         if agents_content:
             ctx.messages.append({"role": "system", "content": agents_content})
         rich.print("[green]Chat messages cleared.[/green]")
+        if ctx.session is not None:
+            ctx.session.reset_session_id()
         return False
 
 
