@@ -5,6 +5,7 @@ from guided.chat.actions import (
     Action,
     ActionContext,
     ActionRegistry,
+    ClearAction,
     ExitAction,
     GetPreferenceAction,
     HelpAction,
@@ -182,6 +183,19 @@ def test_init_action_returns_false(capsys, tmp_path, monkeypatch):
     result = InitAction().execute(ctx)
     assert result is False
     assert "Workspace initialized" in capsys.readouterr().out
+
+
+def test_clear_action_clears_messages_and_resets_session(capsys):
+    from unittest.mock import MagicMock
+    ctx = make_ctx()
+    ctx.messages.append({"role": "user", "content": "hello"})
+    ctx.session = MagicMock()
+
+    result = ClearAction().execute(ctx)
+    assert result is False
+    assert len(ctx.messages) == 0 or (len(ctx.messages) == 1 and ctx.messages[0]["role"] == "system")
+    assert "Chat messages cleared." in capsys.readouterr().out
+    ctx.session.reset_session_id.assert_called_once()
 
 
 def test_init_action_describes_initialization(capsys, tmp_path, monkeypatch):
