@@ -394,7 +394,7 @@ def get_system_prompt() -> str:
     system_prompt = ""
     if agents_content:
         system_prompt += textwrap.dedent("""
-            Use the AGENT.md file to guide your responses.
+            Use the AGENTS.md file to guide your responses. Do not perform any actions without the user's explicit instruction.
                 
             ```@AGENTS.md
             """)
