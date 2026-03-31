@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-cuda = [
+hf = [
     "llmlingua>=0.2.2",
 ]
 
