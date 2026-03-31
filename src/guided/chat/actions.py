@@ -270,15 +270,21 @@ class CompactAction(Action):
             if content:
                 prompt += f"{role}: {content}\n\n"
 
-        import torch
+        try:
+            import torch
+            from llmlingua import PromptCompressor
+        except ImportError:
+            rich.print(
+                "[red]The llmlingua library is required for message compaction. "
+                "Please install the cuda optional dependencies.[/red]"
+            )
+            return False
 
         if not torch.cuda.is_available():
             rich.print(
                 "[red]CUDA is required to use the llmlingua-2 model for message compaction.[/red]"
             )
             return False
-
-        from llmlingua import PromptCompressor
 
         try:
             status = None

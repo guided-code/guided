@@ -820,7 +820,6 @@ dependencies = [
     { name = "docker" },
     { name = "dunamai" },
     { name = "kubernetes" },
-    { name = "llmlingua" },
     { name = "markdownify" },
     { name = "ollama" },
     { name = "prompt-toolkit" },
@@ -829,6 +828,11 @@ dependencies = [
     { name = "requests" },
     { name = "rich" },
     { name = "typer" },
+]
+
+[package.optional-dependencies]
+cuda = [
+    { name = "llmlingua" },
 ]
 
 [package.dev-dependencies]
@@ -848,7 +852,7 @@ requires-dist = [
     { name = "docker", specifier = ">=7.1.0" },
     { name = "dunamai", specifier = ">=1.26.0" },
     { name = "kubernetes", specifier = ">=35.0.0" },
-    { name = "llmlingua", specifier = ">=0.2.2" },
+    { name = "llmlingua", marker = "extra == 'cuda'", specifier = ">=0.2.2" },
     { name = "markdownify", specifier = ">=1.2.2" },
     { name = "ollama", specifier = ">=0.6.1" },
     { name = "prompt-toolkit", specifier = ">=3.0.52" },
@@ -858,6 +862,7 @@ requires-dist = [
     { name = "rich", specifier = ">=14.3.3" },
     { name = "typer", specifier = ">=0.24.1" },
 ]
+provides-extras = ["cuda"]
 
 [package.metadata.requires-dev]
 dev = [
