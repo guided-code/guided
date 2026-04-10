@@ -20,7 +20,6 @@ from guided import get_version
 from guided.chat.actions import ActionContext, get_actions_registry
 from guided.configure.config import load_agents_md
 from guided.configure.schema import Configuration, Skill
-from guided.environment import is_debug
 from guided.skills.executor import execute_skill
 from guided.skills import DEFAULT_TOOLS
 from guided.skills.container import exec_command
@@ -182,6 +181,12 @@ class ChatSession:
                 should_exit = self.registry.dispatch(user_input.strip(), action_context)
                 if should_exit:
                     break
+                if action_context.pending_user_message:
+                    self.messages.append(
+                        {"role": "user", "content": action_context.pending_user_message}
+                    )
+                    while tool_calls := self._send(client):
+                        self._execute_tool_calls(client, tool_calls)
                 continue
 
             # Container exec
@@ -206,7 +211,9 @@ class ChatSession:
                         if "status" in locals() and status is not None:
                             status.stop()
                         rich.print(f"[red]Error executing command: {e}[/red]")
-                        logging.error("Exception occurred during command execution", exc_info=True)
+                        logging.error(
+                            "Exception occurred during command execution", exc_info=True
+                        )
                 continue
 
             # Process response

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 import rich
 from pydantic import BaseModel, ConfigDict
 
 from guided.configure.config import load_agents_md
 from guided.configure.schema import Configuration, Preference
+from guided.skills.library import discover_skills
 
 
 class ActionContext(BaseModel):
@@ -15,6 +17,7 @@ class ActionContext(BaseModel):
     config: Configuration
     messages: list
     registry: ActionRegistry
+    pending_user_message: str | None = None
 
 
 class Action(ABC):
@@ -232,6 +235,39 @@ class InitAction(Action):
         return False
 
 
+class MarkdownSkillAction(Action):
+    def __init__(self, name: str, path: Path, content: str, description: str) -> None:
+        self._name = name
+        self._path = path
+        self._content = content
+        self._description = description
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def description(self) -> str:
+        return self._description
+
+    def execute(self, ctx: ActionContext, args: str = "") -> bool:
+        prompt = [
+            f"Execute the `{self._name}` workflow defined in `{self._path}`.",
+            "",
+            "Follow the workflow described below and use the current repository context.",
+            "",
+            f"```@{self._path}",
+            self._content,
+            "```",
+        ]
+        if args.strip():
+            prompt.extend(["", f"Additional input: {args.strip()}"])
+
+        ctx.pending_user_message = "\n".join(prompt)
+        rich.print(f"[green]Queued skill:[/green] /{self._name}")
+        return False
+
+
 class ActionRegistry:
     """Registry for actions."""
 
@@ -288,5 +324,15 @@ def get_actions_registry() -> ActionRegistry:
     ]
     for action in default_actions:
         registry.register(action)
+
+    for skill in discover_skills().values():
+        registry.register(
+            MarkdownSkillAction(
+                name=skill.name,
+                path=skill.path,
+                content=skill.content,
+                description=skill.description,
+            )
+        )
 
     return registry
