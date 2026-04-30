@@ -1,7 +1,7 @@
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 import rich
 import typer
@@ -149,6 +149,17 @@ def initialize_workspace(
             workspace_path.mkdir()
             for subdir in SUBDIRS:
                 (workspace_path / subdir).mkdir()
+
+            # Initialize SYSTEM.md from DEFAULT_SYSTEM.md template
+            default_system = (
+                Path(__file__).parent.parent.parent / "prompts" / "DEFAULT_SYSTEM.md"
+            )
+            if default_system.exists():
+                workspace_system = workspace_path / "SYSTEM.md"
+                workspace_system.write_text(default_system.read_text())
+                rich.print(
+                    f"  [dim]system:[/dim]    Initialized from DEFAULT_SYSTEM.md"
+                )
 
             save_workspace_config(workspace_path, config)
 

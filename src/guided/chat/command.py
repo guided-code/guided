@@ -1,7 +1,7 @@
 import logging
 import sys
-import textwrap
 import traceback
+from pathlib import Path
 from typing import List, Optional, Self
 
 import ollama
@@ -20,10 +20,10 @@ from guided import get_version
 from guided.chat.actions import ActionContext, get_actions_registry
 from guided.configure.config import load_agents_md
 from guided.configure.schema import Configuration, Skill
-from guided.skills.executor import execute_skill
 from guided.skills import DEFAULT_TOOLS
 from guided.skills.container import exec_command
-from guided.workspace.command import initialize_workspace, find_workspace_root
+from guided.skills.executor import execute_skill
+from guided.workspace.command import find_workspace_root, initialize_workspace
 
 logger = logging.getLogger("guided.core")
 
@@ -350,25 +350,60 @@ class ChatSession:
         return tool_calls
 
 
+def load_system_prompt_file() -> Optional[str]:
+    """Load SYSTEM.md from workspace, initializing from DEFAULT_SYSTEM.md if it doesn't exist.
+
+    Checks in order:
+    1. .workspace/SYSTEM.md (in workspace root)
+    2. .workspace/context/SYSTEM.md (in workspace context folder)
+
+    If neither exists, initializes from prompts/DEFAULT_SYSTEM.md
+    """
+    workspace = Path(".workspace")
+    if not workspace.is_dir():
+        return None
+
+    # Check workspace root
+    workspace_system = workspace / "SYSTEM.md"
+    if workspace_system.exists():
+        return workspace_system.read_text().strip()
+
+    # Check workspace context folder
+    context_system = workspace / "context" / "SYSTEM.md"
+    if context_system.exists():
+        return context_system.read_text().strip()
+
+    # Initialize from DEFAULT_SYSTEM.md if it exists
+    default_system = (
+        Path(__file__).parent.parent.parent.parent / "prompts" / "DEFAULT_SYSTEM.md"
+    )
+    if default_system.exists():
+        content = default_system.read_text().strip()
+        # Save to workspace for future use
+        workspace_system.parent.mkdir(parents=True, exist_ok=True)
+        workspace_system.write_text(content)
+        return content
+
+    return None
+
+
 def get_system_prompt() -> str:
+    """Build the system prompt by combining AGENTS.md and SYSTEM.md."""
     agents_content = load_agents_md()
-    system_prompt = ""
-    if agents_content:
-        system_prompt += textwrap.dedent("""
-            Use the AGENT.md file to guide your responses.
-                
-            ```@AGENTS.md
-            """)
-        system_prompt += agents_content
-        system_prompt += "\n```\n\n"
-    system_prompt += textwrap.dedent("""
-        Additional instructions:
-            * Commands are executed within a container with the current working directory mounted as `/workspace`. 
-            * Ignore the `.workspace/` folder and its contents unless explicitly asked.
-            * Services are deployed using Kubernetes and can be interacted with using tools
-            * Write a Dockerfile to build image(s) as necessary and a set of manifest files `manifests/` to deploy
-        """)
-    return system_prompt
+
+    # Load SYSTEM.md (initialized from DEFAULT_SYSTEM.md if needed)
+    system_content = load_system_prompt_file()
+
+    prompt_parts = []
+
+    # Add SYSTEM.md content if available
+    if system_content:
+        # Replace @AGENTS.md placeholder with actual agents content
+        if agents_content:
+            system_content = system_content.replace("@AGENTS.md", agents_content)
+        prompt_parts.append(system_content)
+
+    return "\n\n".join(prompt_parts) if prompt_parts else ""
 
 
 def run_chat(
