@@ -15,6 +15,13 @@ runner = CliRunner()
 app = typer.Typer()
 
 
+@pytest.fixture(autouse=True)
+def mock_workspace_operations():
+    with patch("guided.chat.command.initialize_workspace"), \
+         patch("guided.chat.command.ChatSession._save_transcript"):
+        yield
+
+
 @app.command()
 def chat(
     ctx: typer.Context,
@@ -84,6 +91,24 @@ def test_chat_no_default_when_default_false(config_with_model):
     result = runner.invoke(app, [], obj=config_with_model)
     assert result.exit_code == 1
     assert "No model specified" in result.output
+
+
+def test_chat_session_reset_session_id():
+    from guided.chat.command import ChatSession
+    from pathlib import Path
+
+    session = ChatSession(config=MagicMock())
+    initial_id = session.session_id
+    assert len(initial_id) == 8
+
+    session._transcript_file = Path("/fake/.workspace/transcripts") / f"{initial_id}_datetime.yaml"
+    session.reset_session_id()
+
+    new_id = session.session_id
+    assert new_id != initial_id
+    assert len(new_id) == 8
+    assert new_id in str(session._transcript_file)
+    assert str(session._transcript_file).endswith(".yaml")
 
 
 @pytest.mark.with_llm

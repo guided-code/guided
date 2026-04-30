@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from typing import Any
+
 import rich
 from pydantic import BaseModel, ConfigDict
 
@@ -15,6 +17,7 @@ class ActionContext(BaseModel):
     config: Configuration
     messages: list
     registry: ActionRegistry
+    session: Any = None
 
 
 class Action(ABC):
@@ -105,6 +108,8 @@ class ClearAction(Action):
         if agents_content:
             ctx.messages.append({"role": "system", "content": agents_content})
         rich.print("[green]Chat messages cleared.[/green]")
+        if ctx.session is not None:
+            ctx.session.reset_session_id()
         return False
 
 
@@ -232,6 +237,94 @@ class InitAction(Action):
         return False
 
 
+class CompactAction(Action):
+    """Compacts the chat history into a summary to save context window space."""
+
+    @property
+    def name(self) -> str:
+        return "compact"
+
+    @property
+    def description(self) -> str:
+        return "Compact chat history by summarizing previous messages"
+
+    def execute(self, ctx: ActionContext, args: str = "") -> bool:
+        if len(ctx.messages) <= 2:
+            rich.print("[dim]Not enough messages to compact.[/dim]")
+            return False
+
+        rich.print("[dim]Compacting messages...[/dim]")
+
+        system_msgs = [m for m in ctx.messages if m.get("role") == "system"]
+        chat_msgs = [m for m in ctx.messages if m.get("role") != "system"]
+
+        if not chat_msgs:
+            rich.print("[dim]No chat messages to compact.[/dim]")
+            return False
+
+        prompt = ""
+        for msg in chat_msgs:
+            role = msg.get("role", "unknown").capitalize()
+            # Try to get the main content, or error if it was a failure
+            content = msg.get("content") or msg.get("error") or ""
+            if content:
+                prompt += f"{role}: {content}\n\n"
+
+        try:
+            import torch
+            from llmlingua import PromptCompressor
+        except ImportError:
+            rich.print(
+                "[red]The llmlingua library is required for message compaction. "
+                "Please install the cuda optional dependencies.[/red]"
+            )
+            return False
+
+        if not torch.cuda.is_available():
+            rich.print(
+                "[red]CUDA is required to use the llmlingua-2 model for message compaction.[/red]"
+            )
+            return False
+
+        try:
+            status = None
+            if hasattr(ctx.session, "_console"):
+                status = ctx.session._console.status(
+                    "[bold magenta]Compacting...", spinner="dots"
+                )
+                status.start()
+
+            llm_lingua = PromptCompressor(
+                model_name="microsoft/llmlingua-2-xlm-roberta-large-meetingbank",
+                use_llmlingua2=True,  # Whether to use llmlingua-2
+            )
+            compressed = llm_lingua.compress_prompt(prompt, rate=0.33)
+
+            if status is not None:
+                status.stop()
+
+            summary = compressed["compressed_prompt"]
+
+            ctx.messages.clear()
+            ctx.messages.extend(system_msgs)
+            ctx.messages.append(
+                {
+                    "role": "system",
+                    "content": f"Previous conversation summary:\n{summary}",
+                }
+            )
+
+            rich.print("[green]Chat history successfully compacted.[/green]")
+            if ctx.session is not None:
+                ctx.session.reset_session_id()
+        except Exception as e:
+            if "status" in locals() and status is not None:
+                status.stop()
+            rich.print(f"[red]Error compacting messages: {e}[/red]")
+
+        return False
+
+
 class ActionRegistry:
     """Registry for actions."""
 
@@ -279,6 +372,7 @@ def get_actions_registry() -> ActionRegistry:
     default_actions = [
         InitAction(),
         ClearAction(),
+        CompactAction(),
         ExitAction(),
         GetPreferenceAction(),
         HistoryAction(),

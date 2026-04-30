@@ -20,6 +20,11 @@ dependencies = [
     "typer>=0.24.1",
 ]
 
+[project.optional-dependencies]
+hf = [
+    "llmlingua>=0.2.2",
+]
+
 [dependency-groups]
 dev = [
     "ipdb>=0.13.13",
