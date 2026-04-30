@@ -128,3 +128,30 @@ def test_init_fails_if_workspace_key_mismatch(tmp_path):
     result = runner.invoke(app, ["init", str(tmp_path)])
     assert result.exit_code == 1
     assert "workspace update" in result.output
+
+
+# update
+
+
+def test_update_regenerates_workspace_key(tmp_path):
+    _init_workspace(tmp_path)
+    config_path = tmp_path / WORKSPACE_DIR / "config.yaml"
+    with open(config_path) as f:
+        data = yaml.safe_load(f)
+    data["workspace_key"] = "stale_key_from_old_machine"
+    with open(config_path, "w") as f:
+        yaml.dump(data, f)
+
+    result = runner.invoke(app, ["update", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "updated" in result.output.lower()
+
+    with open(config_path) as f:
+        updated = yaml.safe_load(f)
+    assert updated["workspace_key"] == workspace_key()
+
+
+def test_update_fails_if_no_workspace(tmp_path):
+    result = runner.invoke(app, ["update", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "No workspace found" in result.output
