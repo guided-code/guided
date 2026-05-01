@@ -128,7 +128,7 @@ class HistoryAction(Action):
             return False
 
         rich.print("\n[bold]Chat History:[/bold]")
-        for i, msg in enumerate(ctx.messages, start=1):
+        for i, msg in enumerate(ctx.messages):
             role = msg.get("role", "unknown")
 
             rich.print(f"\n[bold]--- Message {i} ({role.capitalize()}) ---[/bold]")

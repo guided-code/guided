@@ -152,21 +152,17 @@ def initialize_workspace(
 
             # Initialize SYSTEM.md from DEFAULT_SYSTEM.md template
             default_system = (
-                Path(__file__).parent.parent.parent / "prompts" / "DEFAULT_SYSTEM.md"
+                Path(__file__).parent.parent.parent.parent
+                / "prompts"
+                / "DEFAULT_SYSTEM.md"
             )
             if default_system.exists():
                 workspace_system = workspace_path / "SYSTEM.md"
                 workspace_system.write_text(default_system.read_text())
-                rich.print(
-                    "  [dim]system:[/dim]    Initialized from DEFAULT_SYSTEM.md"
-                )
 
             save_workspace_config(workspace_path, config)
 
             rich.print(f"[green]Workspace initialized:[/green] {workspace_path}")
-            rich.print(f"  [dim]name:[/dim]      {config.name}")
-            rich.print(f"  [dim]created:[/dim]   {config.created_at}")
-            rich.print(f"  [dim]folders:[/dim]   {', '.join(SUBDIRS)}")
         else:
             rich.print("[yellow]Workspace initialization cancelled.[/yellow]")
             raise typer.Exit(0)
