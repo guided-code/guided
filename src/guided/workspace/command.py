@@ -158,7 +158,7 @@ def initialize_workspace(
                 workspace_system = workspace_path / "SYSTEM.md"
                 workspace_system.write_text(default_system.read_text())
                 rich.print(
-                    f"  [dim]system:[/dim]    Initialized from DEFAULT_SYSTEM.md"
+                    "  [dim]system:[/dim]    Initialized from DEFAULT_SYSTEM.md"
                 )
 
             save_workspace_config(workspace_path, config)

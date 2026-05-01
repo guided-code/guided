@@ -390,7 +390,6 @@ def load_system_prompt_file() -> Optional[str]:
 def get_system_prompt() -> str:
     """Build the system prompt by combining AGENTS.md and SYSTEM.md."""
     agents_content = load_agents_md()
-<<<<<<< henry/add-skill
 
     # Load SYSTEM.md (initialized from DEFAULT_SYSTEM.md if needed)
     system_content = load_system_prompt_file()
@@ -405,25 +404,6 @@ def get_system_prompt() -> str:
         prompt_parts.append(system_content)
 
     return "\n\n".join(prompt_parts) if prompt_parts else ""
-=======
-    system_prompt = ""
-    if agents_content:
-        system_prompt += textwrap.dedent("""
-            Use the AGENT.md file to guide your responses.
-                
-            ```@AGENTS.md
-            """)
-        system_prompt += agents_content
-        system_prompt += "\n```\n\n"
-    system_prompt += textwrap.dedent("""
-        Additional instructions:
-            * Commands are executed within a container with the current working directory mounted as `/workspace`. 
-            * Ignore the configuration folder `.workspace/` and its contents unless explicitly asked.
-            * Services are deployed using Kubernetes and can be interacted with using tools
-            * Write a Dockerfile to build image(s) as necessary and a set of manifest files `manifests/` to deploy
-        """)
-    return system_prompt
->>>>>>> main
 
 
 def run_chat(
