@@ -50,6 +50,8 @@ A project's current working directory is expected to be mounted within `/workspa
 A workspace configuration folder is created at `.workspace/` when a project is initialized.  
 
 - `config.yaml` — Workspace configuration (name, version, created_at)
+- `AGENTS.md` — Context specific to the workspace
+- `SYSTEM.md` — System prompt specific to the workspace
 - `decisions/` — Decision records
 - `transcripts/` — Chat transcripts
 - `context/` — Context files

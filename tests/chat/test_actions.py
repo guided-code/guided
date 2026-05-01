@@ -260,6 +260,23 @@ def test_dispatch_unknown(capsys):
     assert "Unknown action" in capsys.readouterr().out
 
 
+def test_dispatch_skill_sets_pending_user_message(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_file = tmp_path / ".guided" / "skills" / "deploy" / "SKILL.md"
+    skill_file.parent.mkdir(parents=True)
+    skill_file.write_text("# deploy\n\nDeploy the project.\n")
+
+    registry = get_actions_registry()
+    ctx = make_ctx(registry)
+
+    result = registry.dispatch("/deploy staging", ctx)
+
+    assert result is False
+    assert ctx.pending_user_message is not None
+    assert "Deploy the project." in ctx.pending_user_message
+    assert "Additional input: staging" in ctx.pending_user_message
+
+
 def test_dispatch_non_action_returns_none():
     registry = get_actions_registry()
     ctx = make_ctx(registry)
@@ -292,6 +309,17 @@ def test_actions_registry_has_exit_and_help():
     registry = get_actions_registry()
     assert "exit" in registry.actions
     assert "help" in registry.actions
+
+
+def test_actions_registry_discovers_markdown_skills(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_file = tmp_path / ".guided" / "skills" / "deploy" / "SKILL.md"
+    skill_file.parent.mkdir(parents=True)
+    skill_file.write_text("# deploy\n\nDeploy the project.\n")
+
+    registry = get_actions_registry()
+
+    assert "deploy" in registry.actions
 
 
 # Alias dispatch

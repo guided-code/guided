@@ -5,8 +5,8 @@ import docker
 from guided.workspace.command import find_workspace_root
 
 DEFAULT_CONTAINER_IMAGE = "alpine:latest"
-MOUNT_PATH = "/workspace"
-WORKING_DIR = "/workspace"
+MOUNT_PATH = "/app"
+WORKING_DIR = "/app"
 
 
 def build_container_image(
